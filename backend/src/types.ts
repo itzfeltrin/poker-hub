@@ -35,4 +35,10 @@ export type LucroPerda = {
   lucro_perda: number;
 };
 
-export type PeriodoFiltro = "ultimos_7_dias" | "ultimo_mes" | "ultimo_ano" | "todo_periodo" | "personalizado";
+export enum PeriodoFiltro {
+  Ultimos7Dias = "ultimos_7_dias",
+  UltimoMes = "ultimo_mes",
+  UltimoAno = "ultimo_ano",
+  TodoPeriodo = "todo_periodo",
+  Personalizado = "personalizado",
+}
