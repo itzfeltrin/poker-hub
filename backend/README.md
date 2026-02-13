@@ -11,6 +11,11 @@ bun run dev
 
 Servidor em `http://localhost:3000`.
 
+## Swagger
+
+- **GET /docs** – Swagger UI (documentação interativa)
+- **GET /doc** – OpenAPI 3.0 spec (JSON)
+
 ## Endpoints
 
 ### Jogadores (`/jogadores`)
