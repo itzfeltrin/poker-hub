@@ -2,35 +2,32 @@ import { Database } from "bun:sqlite";
 
 const db = new Database("poker-hub.sqlite", { create: true });
 
-// Jogadores: id (UUID), nome
 db.run(`
-  CREATE TABLE IF NOT EXISTS jogadores (
+  CREATE TABLE IF NOT EXISTS players (
     id TEXT PRIMARY KEY,
-    nome TEXT NOT NULL
+    name TEXT NOT NULL
   )
 `);
 
-// Partidas: id, data, buy-in, chips por jogador, se já finalizou
 db.run(`
-  CREATE TABLE IF NOT EXISTS partidas (
+  CREATE TABLE IF NOT EXISTS games (
     id TEXT PRIMARY KEY,
-    data TEXT NOT NULL,
+    date TEXT NOT NULL,
     buy_in REAL NOT NULL,
-    chips_por_jogador INTEGER NOT NULL,
-    finalizada INTEGER NOT NULL DEFAULT 0
+    chips_per_player INTEGER NOT NULL,
+    finished INTEGER NOT NULL DEFAULT 0
   )
 `);
 
-// Participação na partida: jogador + chips iniciais e finais
 db.run(`
-  CREATE TABLE IF NOT EXISTS partida_jogadores (
-    partida_id TEXT NOT NULL,
-    jogador_id TEXT NOT NULL,
-    chips_iniciais INTEGER NOT NULL,
-    chips_finais INTEGER,
-    PRIMARY KEY (partida_id, jogador_id),
-    FOREIGN KEY (partida_id) REFERENCES partidas(id),
-    FOREIGN KEY (jogador_id) REFERENCES jogadores(id)
+  CREATE TABLE IF NOT EXISTS game_players (
+    game_id TEXT NOT NULL,
+    player_id TEXT NOT NULL,
+    initial_chips INTEGER NOT NULL,
+    final_chips INTEGER,
+    PRIMARY KEY (game_id, player_id),
+    FOREIGN KEY (game_id) REFERENCES games(id),
+    FOREIGN KEY (player_id) REFERENCES players(id)
   )
 `);
 

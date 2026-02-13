@@ -46,4 +46,4 @@ Resposta inclui por jogador: `total_entrada`, `total_saida`, `lucro_perda`.
 
 ## Persistência
 
-SQLite em `poker-hub.sqlite` na pasta do backend (criado automaticamente).
+SQLite em `poker-hub.sqlite` na pasta do backend (criado automaticamente). Tabelas: `players`, `games`, `game_players`. Se você tinha um banco antigo (tabelas em português), apague o arquivo `.sqlite` para começar do zero.

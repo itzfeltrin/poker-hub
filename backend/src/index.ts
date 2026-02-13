@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import jogadores from "./routes/jogadores";
-import partidas from "./routes/partidas";
-import historico from "./routes/historico";
-import lucrosPerdas from "./routes/lucros-perdas";
+import players from "./routes/players";
+import games from "./routes/games";
+import history from "./routes/history";
+import profitLoss from "./routes/profit-loss";
 
 const app = new Hono();
 
@@ -18,9 +18,9 @@ app.get("/", (c) => {
   });
 });
 
-app.route("/jogadores", jogadores);
-app.route("/partidas", partidas);
-app.route("/historico", historico);
-app.route("/lucros-perdas", lucrosPerdas);
+app.route("/jogadores", players);
+app.route("/partidas", games);
+app.route("/historico", history);
+app.route("/lucros-perdas", profitLoss);
 
 export default app;
