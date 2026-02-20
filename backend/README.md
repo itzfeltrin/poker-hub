@@ -1,54 +1,54 @@
 # Poker Hub – API
 
-API em português para registrar jogadores, partidas e consultar histórico e lucros/perdas.
+API to register players, games, and query history and profit/loss.
 
-## Como rodar
+## How to run
 
 ```bash
 bun install
 bun run dev
 ```
 
-Servidor em `http://localhost:3000`.
+Server at `http://localhost:3000`.
 
 ## Swagger
 
-- **GET /docs** – Swagger UI (documentação interativa)
+- **GET /docs** – Swagger UI (interactive docs)
 - **GET /doc** – OpenAPI 3.0 spec (JSON)
 
 ## Endpoints
 
-### Jogadores (`/jogadores`)
+### Players (`/players`)
 
-- **GET /jogadores** – Lista todos os jogadores
-- **POST /jogadores** – Cria jogador  
-  Body: `{ "nome": "Nome do Jogador" }`  
-  Retorna o jogador com `id` (UUID) e `nome`
-- **GET /jogadores/:id** – Retorna um jogador
+- **GET /players** – List all players
+- **POST /players** – Create player  
+  Body: `{ "name": "Player Name" }`  
+  Returns the player with `id` (UUID) and `name`
+- **GET /players/:id** – Get a player
 
-### Partidas (`/partidas`)
+### Games (`/games`)
 
-- **POST /partidas** – Cria nova partida  
-  Body: `{ "buy_in": 100, "chips_por_jogador": 1000, "jogador_ids": ["uuid1", "uuid2"] }`
-- **GET /partidas/:id** – Retorna uma partida com jogadores e chips
-- **PATCH /partidas/:id/finalizar** – Finaliza a partida com chips finais  
-  Body: `{ "chips_finais": { "jogador_id": 1500, "outro_id": 500 } }`  
-  O valor recebido por cada jogador é calculado proporcionalmente ao total de chips (pool = buy_in × número de jogadores).
+- **POST /games** – Create new game  
+  Body: `{ "buy_in": 100, "chips_per_player": 1000, "player_ids": ["uuid1", "uuid2"] }`
+- **GET /games/:id** – Get a game with players and chips
+- **PATCH /games/:id/finalize** – Finalize the game with final chips  
+  Body: `{ "final_chips": { "player_id": 1500, "other_id": 500 } }`  
+  Each player's payout is computed proportionally to total chips (pool = buy_in × number of players).
 
-### Histórico (`/historico`)
+### History (`/history`)
 
-- **GET /historico** – Lista todas as partidas (mais recentes primeiro), com jogadores e chips iniciais/finais
+- **GET /history** – List all games (most recent first), with players and initial/final chips
 
-### Lucros e perdas (`/lucros-perdas`)
+### Profit and loss (`/profit-loss`)
 
-- **GET /lucros-perdas** – P&L por jogador  
-  Query: `periodo` = `ultimos_7_dias` | `ultimo_mes` | `ultimo_ano` | `todo_periodo` | `personalizado`  
-  Para `personalizado`: `data_inicio` e `data_fim` em ISO (ex: `2025-01-01T00:00:00.000Z`).
+- **GET /profit-loss** – P&L per player  
+  Query: `period` = `last_7_days` | `last_month` | `last_year` | `all_time` | `custom`  
+  For `custom`: `start_date` and `end_date` in ISO (e.g. `2025-01-01T00:00:00.000Z`).
 
-Exemplo: `GET /lucros-perdas?periodo=ultimo_mes`
+Example: `GET /profit-loss?period=last_month`
 
-Resposta inclui por jogador: `total_entrada`, `total_saida`, `lucro_perda`.
+Response includes per player: `total_buy_in`, `total_cash_out`, `profit_loss`.
 
-## Persistência
+## Persistence
 
-SQLite em `poker-hub.sqlite` na pasta do backend (criado automaticamente). Tabelas: `players`, `games`, `game_players`. Se você tinha um banco antigo (tabelas em português), apague o arquivo `.sqlite` para começar do zero.
+SQLite in `poker-hub.sqlite` in the backend folder (created automatically). Tables: `players`, `games`, `game_players`.

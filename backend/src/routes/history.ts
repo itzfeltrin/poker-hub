@@ -41,15 +41,15 @@ app.get("/", (c) => {
   return c.json(
     result.map((g) => ({
       id: g.id,
-      data: g.date,
+      date: g.date,
       buy_in: g.buy_in,
-      chips_por_jogador: g.chips_per_player,
-      finalizada: g.finished,
-      jogadores: g.players.map((p) => ({
-        jogador_id: p.player_id,
-        nome: p.name,
-        chips_iniciais: p.initial_chips,
-        chips_finais: p.final_chips,
+      chips_per_player: g.chips_per_player,
+      finished: g.finished,
+      players: g.players.map((p) => ({
+        player_id: p.player_id,
+        name: p.name,
+        initial_chips: p.initial_chips,
+        final_chips: p.final_chips,
       })),
     }))
   );

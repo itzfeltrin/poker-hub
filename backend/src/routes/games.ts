@@ -6,22 +6,22 @@ const app = new Hono();
 
 type CreateGameBody = {
   buy_in: number;
-  chips_por_jogador: number;
-  jogador_ids: string[];
+  chips_per_player: number;
+  player_ids: string[];
 };
 
 app.post("/", async (c) => {
   const body = await c.req.json<CreateGameBody>();
-  const { buy_in, chips_por_jogador, jogador_ids } = body;
+  const { buy_in, chips_per_player, player_ids } = body;
 
   if (typeof buy_in !== "number" || buy_in <= 0) {
-    return c.json({ erro: "buy_in deve ser um número positivo" }, 400);
+    return c.json({ error: "buy_in must be a positive number" }, 400);
   }
-  if (typeof chips_por_jogador !== "number" || chips_por_jogador <= 0) {
-    return c.json({ erro: "chips_por_jogador deve ser um número positivo" }, 400);
+  if (typeof chips_per_player !== "number" || chips_per_player <= 0) {
+    return c.json({ error: "chips_per_player must be a positive number" }, 400);
   }
-  if (!Array.isArray(jogador_ids) || jogador_ids.length === 0) {
-    return c.json({ erro: "jogador_ids deve ser um array não vazio de IDs de jogadores" }, 400);
+  if (!Array.isArray(player_ids) || player_ids.length === 0) {
+    return c.json({ error: "player_ids must be a non-empty array of player IDs" }, 400);
   }
 
   const id = crypto.randomUUID();
@@ -29,44 +29,44 @@ app.post("/", async (c) => {
 
   db.run(
     "INSERT INTO games (id, date, buy_in, chips_per_player, finished) VALUES (?, ?, ?, ?, 0)",
-    [id, date, buy_in, chips_por_jogador]
+    [id, date, buy_in, chips_per_player]
   );
 
-  for (const playerId of jogador_ids) {
+  for (const playerId of player_ids) {
     db.run(
       "INSERT INTO game_players (game_id, player_id, initial_chips, final_chips) VALUES (?, ?, ?, NULL)",
-      [id, playerId, chips_por_jogador]
+      [id, playerId, chips_per_player]
     );
   }
 
   const game = getGameWithPlayers(id);
-  if (!game) return c.json({ erro: "Erro ao criar partida" }, 500);
+  if (!game) return c.json({ error: "Failed to create game" }, 500);
   return c.json(toGameResponse(game), 201);
 });
 
 app.get("/:id", (c) => {
   const id = c.req.param("id");
   const game = getGameWithPlayers(id);
-  if (!game) return c.json({ erro: "Partida não encontrada" }, 404);
+  if (!game) return c.json({ error: "Game not found" }, 404);
   return c.json(toGameResponse(game));
 });
 
 type FinalizeGameBody = {
-  chips_finais: Record<string, number>;
+  final_chips: Record<string, number>;
 };
 
-app.patch("/:id/finalizar", async (c) => {
+app.patch("/:id/finalize", async (c) => {
   const gameId = c.req.param("id");
   const game = db
     .query<{ finished: number }, [string]>("SELECT finished FROM games WHERE id = ?")
     .get(gameId);
-  if (!game) return c.json({ erro: "Partida não encontrada" }, 404);
-  if (game.finished) return c.json({ erro: "Partida já está finalizada" }, 400);
+  if (!game) return c.json({ error: "Game not found" }, 404);
+  if (game.finished) return c.json({ error: "Game is already finalized" }, 400);
 
   const body = await c.req.json<FinalizeGameBody>();
-  const finalChips = body.chips_finais;
+  const finalChips = body.final_chips;
   if (!finalChips || typeof finalChips !== "object") {
-    return c.json({ erro: "chips_finais deve ser um objeto { jogador_id: chips }" }, 400);
+    return c.json({ error: "final_chips must be an object { player_id: chips }" }, 400);
   }
 
   const participants = db
@@ -79,7 +79,7 @@ app.patch("/:id/finalizar", async (c) => {
     const chips = finalChips[player_id];
     if (typeof chips !== "number" || chips < 0) {
       return c.json(
-        { erro: `chips_finais inválido para jogador ${player_id}. Deve ser número >= 0` },
+        { error: `Invalid final_chips for player ${player_id}. Must be a number >= 0` },
         400
       );
     }
@@ -91,7 +91,7 @@ app.patch("/:id/finalizar", async (c) => {
 
   db.run("UPDATE games SET finished = 1 WHERE id = ?", [gameId]);
   const updated = getGameWithPlayers(gameId);
-  if (!updated) return c.json({ erro: "Erro ao finalizar" }, 500);
+  if (!updated) return c.json({ error: "Failed to finalize" }, 500);
   return c.json(toGameResponse(updated));
 });
 
@@ -126,15 +126,15 @@ function getGameWithPlayers(gameId: string): GameWithPlayers | null {
 function toGameResponse(g: GameWithPlayers) {
   return {
     id: g.id,
-    data: g.date,
+    date: g.date,
     buy_in: g.buy_in,
-    chips_por_jogador: g.chips_per_player,
-    finalizada: g.finished,
-    jogadores: g.players.map((p) => ({
-      jogador_id: p.player_id,
-      nome: p.name,
-      chips_iniciais: p.initial_chips,
-      chips_finais: p.final_chips,
+    chips_per_player: g.chips_per_player,
+    finished: g.finished,
+    players: g.players.map((p) => ({
+      player_id: p.player_id,
+      name: p.name,
+      initial_chips: p.initial_chips,
+      final_chips: p.final_chips,
     })),
   };
 }

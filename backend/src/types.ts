@@ -36,9 +36,9 @@ export type ProfitLoss = {
 };
 
 export enum PeriodFilter {
-  Last7Days = "ultimos_7_dias",
-  LastMonth = "ultimo_mes",
-  LastYear = "ultimo_ano",
-  AllTime = "todo_periodo",
-  Custom = "personalizado",
+  Last7Days = "last_7_days",
+  LastMonth = "last_month",
+  LastYear = "last_year",
+  AllTime = "all_time",
+  Custom = "custom",
 }

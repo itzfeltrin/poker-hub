@@ -51,37 +51,35 @@ function getEndDate(period: PeriodFilter, endDateQuery?: string): string | null 
   return new Date().toISOString();
 }
 
-type PartidaRow = { id: string; date: string; buy_in: number };
+type GameRow = { id: string; date: string; buy_in: number };
 
-// GET /lucros-perdas?periodo=ultimos_7_dias|ultimo_mes|ultimo_ano|todo_periodo|personalizado
-// For periodo=personalizado: data_inicio=ISO and data_fim=ISO
 app.get("/", (c) => {
   const { period, startDate, endDate } = pipe(
-    c.req.query("periodo"),
+    c.req.query("period"),
     parsePeriod,
     (period) => ({
       period,
-      startDate: getStartDate(period, c.req.query("data_inicio"), c.req.query("data_fim")),
-      endDate: getEndDate(period, c.req.query("data_fim")),
+      startDate: getStartDate(period, c.req.query("start_date"), c.req.query("end_date")),
+      endDate: getEndDate(period, c.req.query("end_date")),
     })
   );
 
-  let games: PartidaRow[];
+  let games: GameRow[];
   if (startDate && endDate) {
     games = db
-      .query<PartidaRow, [string, string]>(
+      .query<GameRow, [string, string]>(
         "SELECT id, date, buy_in FROM games WHERE finished = 1 AND date >= ? AND date <= ? ORDER BY date"
       )
       .all(startDate, endDate);
   } else if (startDate) {
     games = db
-      .query<PartidaRow, [string]>(
+      .query<GameRow, [string]>(
         "SELECT id, date, buy_in FROM games WHERE finished = 1 AND date >= ? ORDER BY date"
       )
       .all(startDate);
   } else {
     games = db
-      .query<PartidaRow, []>(
+      .query<GameRow, []>(
         "SELECT id, date, buy_in FROM games WHERE finished = 1 ORDER BY date"
       )
       .all();
@@ -132,15 +130,15 @@ app.get("/", (c) => {
   );
 
   return c.json({
-    periodo: period,
-    data_inicio: startDate ?? undefined,
-    data_fim: endDate ?? undefined,
-    jogadores: result.map((r) => ({
-      jogador_id: r.player_id,
-      nome: r.name,
-      total_entrada: r.total_in,
-      total_saida: r.total_out,
-      lucro_perda: r.profit_loss,
+    period,
+    start_date: startDate ?? undefined,
+    end_date: endDate ?? undefined,
+    players: result.map((r) => ({
+      player_id: r.player_id,
+      name: r.name,
+      total_buy_in: r.total_in,
+      total_cash_out: r.total_out,
+      profit_loss: r.profit_loss,
     })),
   });
 });

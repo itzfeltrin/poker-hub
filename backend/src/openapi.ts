@@ -3,13 +3,13 @@ export const openApiDoc = {
   info: {
     title: "Poker Hub API",
     version: "1.0.0",
-    description: "API para registrar jogadores, partidas e consultar histórico e lucros/perdas.",
+    description: "API to register players, games, and query history and profit/loss.",
   },
   paths: {
     "/": {
       get: {
         summary: "API info",
-        description: "Lista endpoints disponíveis.",
+        description: "List available endpoints.",
         responses: {
           "200": {
             description: "OK",
@@ -18,14 +18,14 @@ export const openApiDoc = {
                 schema: {
                   type: "object",
                   properties: {
-                    nome: { type: "string", example: "Poker Hub API" },
+                    name: { type: "string", example: "Poker Hub API" },
                     endpoints: {
                       type: "object",
                       properties: {
-                        jogadores: { type: "string", example: "/jogadores" },
-                        partidas: { type: "string", example: "/partidas" },
-                        historico: { type: "string", example: "/historico" },
-                        lucros_perdas: { type: "string", example: "/lucros-perdas" },
+                        players: { type: "string", example: "/players" },
+                        games: { type: "string", example: "/games" },
+                        history: { type: "string", example: "/history" },
+                        profit_loss: { type: "string", example: "/profit-loss" },
                       },
                     },
                   },
@@ -36,17 +36,17 @@ export const openApiDoc = {
         },
       },
     },
-    "/jogadores": {
+    "/players": {
       get: {
-        summary: "Listar jogadores",
+        summary: "List players",
         responses: {
           "200": {
-            description: "Lista de jogadores",
+            description: "List of players",
             content: {
               "application/json": {
                 schema: {
                   type: "array",
-                  items: { $ref: "#/components/schemas/Jogador" },
+                  items: { $ref: "#/components/schemas/Player" },
                 },
               },
             },
@@ -54,16 +54,16 @@ export const openApiDoc = {
         },
       },
       post: {
-        summary: "Criar jogador",
+        summary: "Create player",
         requestBody: {
           required: true,
           content: {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["nome"],
+                required: ["name"],
                 properties: {
-                  nome: { type: "string", description: "Nome do jogador" },
+                  name: { type: "string", description: "Player name" },
                 },
               },
             },
@@ -71,67 +71,67 @@ export const openApiDoc = {
         },
         responses: {
           "201": {
-            description: "Jogador criado",
+            description: "Player created",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Jogador" },
+                schema: { $ref: "#/components/schemas/Player" },
               },
             },
           },
           "400": {
-            description: "Nome obrigatório",
+            description: "Name required",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Erro" },
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
         },
       },
     },
-    "/jogadores/{id}": {
+    "/players/{id}": {
       get: {
-        summary: "Obter jogador por ID",
+        summary: "Get player by ID",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
         ],
         responses: {
           "200": {
-            description: "Jogador",
+            description: "Player",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Jogador" },
+                schema: { $ref: "#/components/schemas/Player" },
               },
             },
           },
           "404": {
-            description: "Jogador não encontrado",
+            description: "Player not found",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Erro" },
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
         },
       },
     },
-    "/partidas": {
+    "/games": {
       post: {
-        summary: "Criar partida",
+        summary: "Create game",
         requestBody: {
           required: true,
           content: {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["buy_in", "chips_por_jogador", "jogador_ids"],
+                required: ["buy_in", "chips_per_player", "player_ids"],
                 properties: {
-                  buy_in: { type: "number", description: "Valor do buy-in" },
-                  chips_por_jogador: { type: "integer", description: "Fichas por jogador" },
-                  jogador_ids: {
+                  buy_in: { type: "number", description: "Buy-in value" },
+                  chips_per_player: { type: "integer", description: "Chips per player" },
+                  player_ids: {
                     type: "array",
                     items: { type: "string", format: "uuid" },
-                    description: "IDs dos jogadores",
+                    description: "Player IDs",
                   },
                 },
               },
@@ -140,54 +140,54 @@ export const openApiDoc = {
         },
         responses: {
           "201": {
-            description: "Partida criada",
+            description: "Game created",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Partida" },
+                schema: { $ref: "#/components/schemas/Game" },
               },
             },
           },
           "400": {
-            description: "Dados inválidos",
+            description: "Invalid data",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Erro" },
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
         },
       },
     },
-    "/partidas/{id}": {
+    "/games/{id}": {
       get: {
-        summary: "Obter partida por ID",
+        summary: "Get game by ID",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
         ],
         responses: {
           "200": {
-            description: "Partida com jogadores",
+            description: "Game with players",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Partida" },
+                schema: { $ref: "#/components/schemas/Game" },
               },
             },
           },
           "404": {
-            description: "Partida não encontrada",
+            description: "Game not found",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Erro" },
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
         },
       },
     },
-    "/partidas/{id}/finalizar": {
+    "/games/{id}/finalize": {
       patch: {
-        summary: "Finalizar partida",
-        description: "Define chips finais por jogador e calcula valores.",
+        summary: "Finalize game",
+        description: "Set final chips per player and compute values.",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
         ],
@@ -197,12 +197,12 @@ export const openApiDoc = {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["chips_finais"],
+                required: ["final_chips"],
                 properties: {
-                  chips_finais: {
+                  final_chips: {
                     type: "object",
                     additionalProperties: { type: "number" },
-                    description: "jogador_id -> quantidade de fichas finais",
+                    description: "player_id -> final chips count",
                   },
                 },
               },
@@ -211,44 +211,44 @@ export const openApiDoc = {
         },
         responses: {
           "200": {
-            description: "Partida finalizada",
+            description: "Game finalized",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Partida" },
+                schema: { $ref: "#/components/schemas/Game" },
               },
             },
           },
           "400": {
-            description: "Partida já finalizada ou dados inválidos",
+            description: "Game already finalized or invalid data",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Erro" },
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
           "404": {
-            description: "Partida não encontrada",
+            description: "Game not found",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/Erro" },
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
         },
       },
     },
-    "/historico": {
+    "/history": {
       get: {
-        summary: "Histórico de partidas",
-        description: "Lista todas as partidas (mais recentes primeiro).",
+        summary: "Game history",
+        description: "List all games (most recent first).",
         responses: {
           "200": {
-            description: "Lista de partidas",
+            description: "List of games",
             content: {
               "application/json": {
                 schema: {
                   type: "array",
-                  items: { $ref: "#/components/schemas/Partida" },
+                  items: { $ref: "#/components/schemas/Game" },
                 },
               },
             },
@@ -256,48 +256,48 @@ export const openApiDoc = {
         },
       },
     },
-    "/lucros-perdas": {
+    "/profit-loss": {
       get: {
-        summary: "Lucros e perdas por jogador",
+        summary: "Profit and loss by player",
         description:
-          "Retorna P&L no período. Use periodo=personalizado com data_inicio e data_fim (ISO) para intervalo customizado.",
+          "Returns P&L for the period. Use period=custom with start_date and end_date (ISO) for custom range.",
         parameters: [
           {
-            name: "periodo",
+            name: "period",
             in: "query",
             schema: {
               type: "string",
-              enum: ["ultimos_7_dias", "ultimo_mes", "ultimo_ano", "todo_periodo", "personalizado"],
-              default: "todo_periodo",
+              enum: ["last_7_days", "last_month", "last_year", "all_time", "custom"],
+              default: "all_time",
             },
           },
           {
-            name: "data_inicio",
+            name: "start_date",
             in: "query",
             schema: { type: "string", format: "date-time" },
-            description: "Obrigatório quando periodo=personalizado",
+            description: "Required when period=custom",
           },
           {
-            name: "data_fim",
+            name: "end_date",
             in: "query",
             schema: { type: "string", format: "date-time" },
-            description: "Obrigatório quando periodo=personalizado",
+            description: "Required when period=custom",
           },
         ],
         responses: {
           "200": {
-            description: "P&L por jogador",
+            description: "P&L per player",
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   properties: {
-                    periodo: { type: "string" },
-                    data_inicio: { type: "string", format: "date-time", nullable: true },
-                    data_fim: { type: "string", format: "date-time", nullable: true },
-                    jogadores: {
+                    period: { type: "string" },
+                    start_date: { type: "string", format: "date-time", nullable: true },
+                    end_date: { type: "string", format: "date-time", nullable: true },
+                    players: {
                       type: "array",
-                      items: { $ref: "#/components/schemas/LucroPerda" },
+                      items: { $ref: "#/components/schemas/ProfitLossItem" },
                     },
                   },
                 },
@@ -310,49 +310,49 @@ export const openApiDoc = {
   },
   components: {
     schemas: {
-      Jogador: {
+      Player: {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          nome: { type: "string" },
+          name: { type: "string" },
         },
       },
-      Partida: {
+      Game: {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          data: { type: "string", format: "date-time" },
+          date: { type: "string", format: "date-time" },
           buy_in: { type: "number" },
-          chips_por_jogador: { type: "integer" },
-          finalizada: { type: "boolean" },
-          jogadores: {
+          chips_per_player: { type: "integer" },
+          finished: { type: "boolean" },
+          players: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                jogador_id: { type: "string", format: "uuid" },
-                nome: { type: "string" },
-                chips_iniciais: { type: "integer" },
-                chips_finais: { type: "integer", nullable: true },
+                player_id: { type: "string", format: "uuid" },
+                name: { type: "string" },
+                initial_chips: { type: "integer" },
+                final_chips: { type: "integer", nullable: true },
               },
             },
           },
         },
       },
-      LucroPerda: {
+      ProfitLossItem: {
         type: "object",
         properties: {
-          jogador_id: { type: "string", format: "uuid" },
-          nome: { type: "string" },
-          total_entrada: { type: "number" },
-          total_saida: { type: "number" },
-          lucro_perda: { type: "number" },
+          player_id: { type: "string", format: "uuid" },
+          name: { type: "string" },
+          total_buy_in: { type: "number" },
+          total_cash_out: { type: "number" },
+          profit_loss: { type: "number" },
         },
       },
-      Erro: {
+      Error: {
         type: "object",
         properties: {
-          erro: { type: "string" },
+          error: { type: "string" },
         },
       },
     },
