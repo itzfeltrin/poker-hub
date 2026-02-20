@@ -36,14 +36,10 @@ export default function NewGamePage() {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const entries = Object.entries(selectedPlayers);
     if (entries.length < 2) {
       toast.error("Select at least 2 players");
-      return;
-    }
-    if (!location.trim()) {
-      toast.error("Add a location");
       return;
     }
 
@@ -53,9 +49,13 @@ export default function NewGamePage() {
       cashOut: Number(data.cashOut) || 0,
     }));
 
-    addGame({ date, location: location.trim(), players: gamePlayers });
-    toast.success("Game logged!");
-    navigate("/history");
+    try {
+      await addGame({ date, location: location.trim(), players: gamePlayers });
+      toast.success("Game logged!");
+      navigate("/history");
+    } catch {
+      toast.error("Failed to save game");
+    }
   };
 
   return (

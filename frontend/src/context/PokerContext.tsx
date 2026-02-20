@@ -1,4 +1,13 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useMemo, ReactNode } from "react";
+import {
+  usePlayersQuery,
+  useCreatePlayerMutation,
+  useHistoryQuery,
+  useProfitLossQuery,
+  useCreateGameMutation,
+  useFinalizeGameMutation,
+} from "@/api/hooks";
+import type { ApiGame, ApiGamePlayer } from "@/api/types";
 
 export interface Player {
   id: string;
@@ -24,9 +33,10 @@ export interface Game {
 interface PokerContextType {
   players: Player[];
   games: Game[];
+  isLoading: boolean;
   addPlayer: (name: string) => void;
   removePlayer: (id: string) => void;
-  addGame: (game: Omit<Game, "id">) => void;
+  addGame: (game: Omit<Game, "id">) => Promise<void>;
   getPlayerById: (id: string) => Player | undefined;
   getPlayerPnL: (playerId: string) => number;
   getPlayerGamesCount: (playerId: string) => number;
@@ -36,91 +46,136 @@ const PokerContext = createContext<PokerContextType | undefined>(undefined);
 
 const AVATARS = ["♠", "♥", "♦", "♣", "👑", "🎯", "🔥", "⭐"];
 
-const defaultPlayers: Player[] = [
-  { id: "1", name: "Alex", avatar: "♠", createdAt: "2024-01-15" },
-  { id: "2", name: "Jordan", avatar: "♥", createdAt: "2024-01-15" },
-  { id: "3", name: "Sam", avatar: "♦", createdAt: "2024-02-01" },
-  { id: "4", name: "Casey", avatar: "♣", createdAt: "2024-02-01" },
-];
+function apiGameToUiGame(g: ApiGame): Game {
+  return {
+    id: g.id,
+    date: g.date,
+    location: "—", // not from API, leave placeholder
+    players: g.players.map((p: ApiGamePlayer) => ({
+      playerId: p.player_id,
+      buyIn: p.initial_chips,
+      cashOut: p.final_chips ?? 0,
+    })),
+  };
+}
 
-const defaultGames: Game[] = [
-  {
-    id: "g1",
-    date: "2024-12-20",
-    location: "Alex's Place",
-    players: [
-      { playerId: "1", buyIn: 50, cashOut: 120 },
-      { playerId: "2", buyIn: 50, cashOut: 30 },
-      { playerId: "3", buyIn: 50, cashOut: 40 },
-      { playerId: "4", buyIn: 50, cashOut: 10 },
-    ],
-  },
-  {
-    id: "g2",
-    date: "2025-01-05",
-    location: "The Garage",
-    players: [
-      { playerId: "1", buyIn: 100, cashOut: 60 },
-      { playerId: "2", buyIn: 100, cashOut: 180 },
-      { playerId: "3", buyIn: 100, cashOut: 80 },
-      { playerId: "4", buyIn: 100, cashOut: 80 },
-    ],
-  },
-  {
-    id: "g3",
-    date: "2025-01-18",
-    location: "Sam's Basement",
-    players: [
-      { playerId: "1", buyIn: 75, cashOut: 90 },
-      { playerId: "2", buyIn: 75, cashOut: 50 },
-      { playerId: "3", buyIn: 75, cashOut: 130 },
-      { playerId: "4", buyIn: 75, cashOut: 30 },
-    ],
-  },
-];
+function apiPlayersToUiPlayers(
+  apiPlayers: { id: string; name: string }[] | undefined
+): Player[] {
+  if (!apiPlayers) return [];
+  return apiPlayers.map((p, i) => ({
+    id: p.id,
+    name: p.name,
+    avatar: AVATARS[i % AVATARS.length],
+    createdAt: "", // not from API, leave empty
+  }));
+}
 
 export function PokerProvider({ children }: { children: ReactNode }) {
-  const [players, setPlayers] = useState<Player[]>(defaultPlayers);
-  const [games, setGames] = useState<Game[]>(defaultGames);
+  const { data: apiPlayers, isLoading: playersLoading } = usePlayersQuery();
+  const { data: historyGames, isLoading: historyLoading } = useHistoryQuery();
+  const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
+  const createPlayerMut = useCreatePlayerMutation();
+  const createGameMut = useCreateGameMutation();
+  const finalizeGameMut = useFinalizeGameMutation();
+
+  const players = useMemo(
+    () => apiPlayersToUiPlayers(apiPlayers),
+    [apiPlayers]
+  );
+  const games = useMemo(
+    () => (historyGames ?? []).map(apiGameToUiGame),
+    [historyGames]
+  );
+
+  const pnlByPlayerId = useMemo(() => {
+    const map = new Map<string, number>();
+    profitLoss?.players?.forEach((p) => map.set(p.player_id, p.profit_loss));
+    return map;
+  }, [profitLoss]);
+
+  const gamesCountByPlayerId = useMemo(() => {
+    const map = new Map<string, number>();
+    games.forEach((g) => {
+      g.players.forEach((gp) => {
+        map.set(gp.playerId, (map.get(gp.playerId) ?? 0) + 1);
+      });
+    });
+    return map;
+  }, [games]);
 
   const addPlayer = (name: string) => {
-    const newPlayer: Player = {
-      id: crypto.randomUUID(),
-      name,
-      avatar: AVATARS[players.length % AVATARS.length],
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setPlayers((prev) => [...prev, newPlayer]);
+    createPlayerMut.mutate(name);
   };
 
-  const removePlayer = (id: string) => {
-    setPlayers((prev) => prev.filter((p) => p.id !== id));
+  const removePlayer = (_id: string) => {
+    // No delete player endpoint on backend; leave as no-op
   };
 
-  const addGame = (game: Omit<Game, "id">) => {
-    setGames((prev) => [...prev, { ...game, id: crypto.randomUUID() }]);
+  const addGame = (game: Omit<Game, "id">): Promise<void> => {
+    const playerIds = game.players.map((p) => p.playerId);
+    const buyIn =
+      game.players.length > 0
+        ? game.players.reduce((s, p) => s + p.buyIn, 0) / game.players.length
+        : 0;
+    const chipsPerPlayer = Math.max(1, Math.round(buyIn));
+    const buyInValue = Math.max(0.01, buyIn || 1);
+    return new Promise((resolve, reject) => {
+      createGameMut.mutate(
+        {
+          buy_in: buyInValue,
+          chips_per_player: chipsPerPlayer,
+          player_ids: playerIds,
+        },
+        {
+          onSuccess: (created) => {
+            const final_chips: Record<string, number> = {};
+            game.players.forEach((p) => {
+              final_chips[p.playerId] = p.cashOut;
+            });
+            finalizeGameMut.mutate(
+              { gameId: created.id, final_chips },
+              {
+                onSuccess: () => resolve(),
+                onError: (err) => reject(err),
+              }
+            );
+          },
+          onError: (err) => reject(err),
+        }
+      );
+    });
   };
 
   const getPlayerById = (id: string) => players.find((p) => p.id === id);
+  const getPlayerPnL = (playerId: string) => pnlByPlayerId.get(playerId) ?? 0;
+  const getPlayerGamesCount = (playerId: string) =>
+    gamesCountByPlayerId.get(playerId) ?? 0;
 
-  const getPlayerPnL = (playerId: string) => {
-    return games.reduce((total, game) => {
-      const entry = game.players.find((p) => p.playerId === playerId);
-      if (!entry) return total;
-      return total + (entry.cashOut - entry.buyIn);
-    }, 0);
-  };
-
-  const getPlayerGamesCount = (playerId: string) => {
-    return games.filter((g) => g.players.some((p) => p.playerId === playerId)).length;
-  };
+  const value: PokerContextType = useMemo(
+    () => ({
+      players,
+      games,
+      isLoading: playersLoading || historyLoading,
+      addPlayer,
+      removePlayer,
+      addGame,
+      getPlayerById,
+      getPlayerPnL,
+      getPlayerGamesCount,
+    }),
+    [
+      players,
+      games,
+      playersLoading,
+      historyLoading,
+      pnlByPlayerId,
+      gamesCountByPlayerId,
+    ]
+  );
 
   return (
-    <PokerContext.Provider
-      value={{ players, games, addPlayer, removePlayer, addGame, getPlayerById, getPlayerPnL, getPlayerGamesCount }}
-    >
-      {children}
-    </PokerContext.Provider>
+    <PokerContext.Provider value={value}>{children}</PokerContext.Provider>
   );
 }
 
