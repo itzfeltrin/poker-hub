@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 160 10% 6%;
+    --foreground: 40 20% 92%;
+
+    --card: 160 8% 10%;
+    --card-foreground: 40 20% 92%;
+
+    --popover: 160 8% 10%;
+    --popover-foreground: 40 20% 92%;
+
+    --primary: 152 55% 40%;
+    --primary-foreground: 160 10% 6%;
+
+    --secondary: 160 8% 16%;
+    --secondary-foreground: 40 20% 85%;
+
+    --muted: 160 6% 14%;
+    --muted-foreground: 160 8% 50%;
+
+    --accent: 42 80% 55%;
+    --accent-foreground: 160 10% 6%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 40 20% 95%;
+
+    --border: 160 8% 18%;
+    --input: 160 8% 18%;
+    --ring: 152 55% 40%;
+
+    --radius: 0.75rem;
+
+    --success: 152 60% 45%;
+    --success-foreground: 160 10% 6%;
+    --loss: 0 65% 50%;
+    --loss-foreground: 40 20% 95%;
+
+    --gold: 42 80% 55%;
+    --gold-dim: 42 40% 30%;
+    --felt: 152 30% 12%;
+
+    --sidebar-background: 160 10% 8%;
+    --sidebar-foreground: 40 20% 85%;
+    --sidebar-primary: 152 55% 40%;
+    --sidebar-primary-foreground: 160 10% 6%;
+    --sidebar-accent: 160 8% 14%;
+    --sidebar-accent-foreground: 40 20% 92%;
+    --sidebar-border: 160 8% 16%;
+    --sidebar-ring: 152 55% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(42 80% 55%), hsl(42 60% 70%));
+  }
+
+  .bg-felt {
+    background: radial-gradient(ellipse at 50% 0%, hsl(152 30% 16%), hsl(152 30% 8%));
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px -5px hsl(152 55% 40% / 0.3);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 20px -5px hsl(42 80% 55% / 0.25);
+  }
+
+  .card-hover {
+    @apply transition-all duration-300;
+  }
+  .card-hover:hover {
+    @apply border-primary/30 glow-primary;
+    transform: translateY(-2px);
+  }
+}
