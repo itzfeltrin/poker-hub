@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useGames } from '../api/hooks'
+import { formatCurrency, formatNumber } from '../utils/currency'
 
 export const Route = createFileRoute('/history')({
   component: HistoryPage,
@@ -26,7 +27,7 @@ function HistoryPage() {
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-500">
-                  {new Date(game.date).toLocaleDateString('pt-BR')} — Buy-in {game.buy_in} · {game.chips_per_player} fichas/jogador
+                  {new Date(game.date).toLocaleDateString('pt-BR')} — Buy-in {formatCurrency(game.buy_in)} · {formatNumber(game.chips_per_player)} fichas/jogador
                 </span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -41,7 +42,7 @@ function HistoryPage() {
                   <li key={player.player_id} className="text-sm text-slate-700">
                     {player.name}
                     {player.final_chips != null && (
-                      <span className="ml-1 text-slate-500">({player.final_chips} fichas)</span>
+                      <span className="ml-1 text-slate-500">({formatNumber(player.final_chips)} fichas)</span>
                     )}
                   </li>
                 ))}

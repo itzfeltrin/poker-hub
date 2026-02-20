@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useProfitLoss } from '../api/hooks'
+import { formatCurrency } from '../utils/currency'
 import { useState } from 'react'
 
 const PERIODS = [
@@ -88,14 +89,14 @@ function ProfitLossPage() {
               {data.players.map((player) => (
                 <tr key={player.player_id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{player.name}</td>
-                  <td className="px-4 py-3 text-right text-slate-600">{player.total_buy_in.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600">{player.total_cash_out.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(player.total_buy_in)}</td>
+                  <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(player.total_cash_out)}</td>
                   <td
                     className={`px-4 py-3 text-right font-medium ${
                       player.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    {player.profit_loss >= 0 ? '+' : ''}{player.profit_loss.toFixed(2)}
+                    {player.profit_loss >= 0 ? '+' : ''}{formatCurrency(player.profit_loss)}
                   </td>
                 </tr>
               ))}
