@@ -5,9 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatPnl } from "@/lib/utils";
 
 export default function PlayersPage() {
-  const { players, addPlayer, removePlayer, getPlayerPnL, getPlayerGamesCount } = usePoker();
+  const {
+    players,
+    addPlayer,
+    removePlayer,
+    getPlayerPnL,
+    getPlayerGamesCount,
+  } = usePoker();
   const [newName, setNewName] = useState("");
 
   const handleAdd = () => {
@@ -20,13 +27,15 @@ export default function PlayersPage() {
   return (
     <div className="space-y-8 pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Players</h1>
-        <p className="text-muted-foreground mt-1">Manage your poker crew.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Jogadores</h1>
+        <p className="text-muted-foreground mt-1">
+          Gerencie sua turma de poker.
+        </p>
       </div>
 
       <div className="flex gap-3 max-w-md">
         <Input
-          placeholder="Player name..."
+          placeholder="Nome do jogador..."
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -34,7 +43,7 @@ export default function PlayersPage() {
         />
         <Button onClick={handleAdd} disabled={!newName.trim()}>
           <Plus className="h-4 w-4 mr-2" />
-          Add
+          Adicionar
         </Button>
       </div>
 
@@ -52,17 +61,21 @@ export default function PlayersPage() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="rounded-xl border border-border bg-card p-5 card-hover flex items-center gap-4"
               >
-                <PlayerAvatar avatar={player.avatar} name={player.name} size="lg" />
+                <PlayerAvatar name={player.name} size="lg" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-display font-semibold text-lg truncate">{player.name}</p>
+                  <p className="font-display font-semibold text-lg truncate">
+                    {player.name}
+                  </p>
                   <div className="flex gap-4 text-sm text-muted-foreground mt-1">
-                    <span>{gamesCount} games</span>
+                    <span>{gamesCount} partidas</span>
                     <span
                       className={
-                        pnl >= 0 ? "text-success font-medium" : "text-loss font-medium"
+                        pnl >= 0
+                          ? "text-success font-medium"
+                          : "text-loss font-medium"
                       }
                     >
-                      {pnl >= 0 ? "+" : ""}${pnl}
+                      {formatPnl(pnl)}
                     </span>
                   </div>
                 </div>

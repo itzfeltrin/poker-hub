@@ -3,11 +3,11 @@ import { Home, Users, Plus, History, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: Home },
-  { to: "/players", label: "Players", icon: Users },
-  { to: "/new-game", label: "New Game", icon: Plus },
-  { to: "/history", label: "History", icon: History },
-  { to: "/standings", label: "Standings", icon: TrendingUp },
+  { to: "/", label: "Início", icon: Home },
+  { to: "/players", label: "Jogadores", icon: Users },
+  { to: "/new-game", label: "Nova partida", icon: Plus },
+  { to: "/history", label: "Histórico", icon: History },
+  { to: "/standings", label: "Classificação", icon: TrendingUp },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -18,10 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
         <div className="container flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl">♠</span>
-            <span className="font-display text-xl font-bold text-gradient-gold">
-              Poker Hub
-            </span>
+            <img src="/logo_transparent.png" alt="Logo" className="h-12" />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {

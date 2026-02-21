@@ -1,6 +1,7 @@
 import { usePoker } from "@/context/PokerContext";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { motion } from "framer-motion";
+import { formatPnl } from "@/lib/utils";
 
 export default function StandingsPage() {
   const { players, getPlayerPnL, getPlayerGamesCount } = usePoker();
@@ -18,8 +19,10 @@ export default function StandingsPage() {
   return (
     <div className="space-y-8 pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Standings</h1>
-        <p className="text-muted-foreground mt-1">All-time profit & loss leaderboard.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Classificação</h1>
+        <p className="text-muted-foreground mt-1">
+          Ranking de lucro e perda de todos os tempos.
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -38,7 +41,7 @@ export default function StandingsPage() {
                 <span className="font-display font-bold text-lg text-muted-foreground w-8 text-center">
                   {i === 0 ? "👑" : `#${i + 1}`}
                 </span>
-                <PlayerAvatar avatar={player.avatar} name={player.name} size="md" />
+                <PlayerAvatar name={player.name} size="md" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-display font-semibold">{player.name}</p>
@@ -47,7 +50,7 @@ export default function StandingsPage() {
                         isPositive ? "text-success" : "text-loss"
                       }`}
                     >
-                      {isPositive ? "+" : ""}${player.pnl}
+                      {formatPnl(player.pnl)}
                     </p>
                   </div>
                   <div className="relative h-2 rounded-full bg-secondary overflow-hidden">
@@ -60,7 +63,9 @@ export default function StandingsPage() {
                       }`}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">{player.games} games played</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {player.games} partidas jogadas
+                  </p>
                 </div>
               </div>
             </motion.div>

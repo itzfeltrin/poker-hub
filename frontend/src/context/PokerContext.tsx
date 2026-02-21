@@ -12,7 +12,6 @@ import type { ApiGame, ApiGamePlayer } from "@/api/types";
 export interface Player {
   id: string;
   name: string;
-  avatar: string;
   createdAt: string;
 }
 
@@ -36,15 +35,15 @@ interface PokerContextType {
   isLoading: boolean;
   addPlayer: (name: string) => void;
   removePlayer: (id: string) => void;
-  addGame: (game: Omit<Game, "id">) => Promise<void>;
+  addGame: (
+    game: Omit<Game, "id"> & { buyIn?: number; chipsPerPlayer?: number },
+  ) => Promise<void>;
   getPlayerById: (id: string) => Player | undefined;
   getPlayerPnL: (playerId: string) => number;
   getPlayerGamesCount: (playerId: string) => number;
 }
 
 const PokerContext = createContext<PokerContextType | undefined>(undefined);
-
-const AVATARS = ["♠", "♥", "♦", "♣", "👑", "🎯", "🔥", "⭐"];
 
 function apiGameToUiGame(g: ApiGame): Game {
   return {
@@ -53,20 +52,19 @@ function apiGameToUiGame(g: ApiGame): Game {
     location: "—", // not from API, leave placeholder
     players: g.players.map((p: ApiGamePlayer) => ({
       playerId: p.player_id,
-      buyIn: p.initial_chips,
-      cashOut: p.final_chips ?? 0,
+      buyIn: g.buy_in,
+      cashOut: (p.final_chips / g.chips_per_player) * g.buy_in,
     })),
   };
 }
 
 function apiPlayersToUiPlayers(
-  apiPlayers: { id: string; name: string }[] | undefined
+  apiPlayers: { id: string; name: string }[] | undefined,
 ): Player[] {
   if (!apiPlayers) return [];
   return apiPlayers.map((p, i) => ({
     id: p.id,
     name: p.name,
-    avatar: AVATARS[i % AVATARS.length],
     createdAt: "", // not from API, leave empty
   }));
 }
@@ -81,11 +79,11 @@ export function PokerProvider({ children }: { children: ReactNode }) {
 
   const players = useMemo(
     () => apiPlayersToUiPlayers(apiPlayers),
-    [apiPlayers]
+    [apiPlayers],
   );
   const games = useMemo(
     () => (historyGames ?? []).map(apiGameToUiGame),
-    [historyGames]
+    [historyGames],
   );
 
   const pnlByPlayerId = useMemo(() => {
@@ -138,11 +136,11 @@ export function PokerProvider({ children }: { children: ReactNode }) {
               {
                 onSuccess: () => resolve(),
                 onError: (err) => reject(err),
-              }
+              },
             );
           },
           onError: (err) => reject(err),
-        }
+        },
       );
     });
   };
@@ -169,9 +167,12 @@ export function PokerProvider({ children }: { children: ReactNode }) {
       games,
       playersLoading,
       historyLoading,
-      pnlByPlayerId,
-      gamesCountByPlayerId,
-    ]
+      addPlayer,
+      addGame,
+      getPlayerById,
+      getPlayerPnL,
+      getPlayerGamesCount,
+    ],
   );
 
   return (

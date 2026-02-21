@@ -68,6 +68,12 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
   }
+
+  /* Native date input: hide calendar icon */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    cursor: pointer;
+  }
 }
 
 @layer utilities {

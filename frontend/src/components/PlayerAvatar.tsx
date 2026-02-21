@@ -1,7 +1,7 @@
+import { AVATARS } from "@/constants";
 import { cn } from "@/lib/utils";
 
 interface PlayerAvatarProps {
-  avatar: string;
   name: string;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -13,17 +13,21 @@ const sizes = {
   lg: "h-14 w-14 text-2xl",
 };
 
-export function PlayerAvatar({ avatar, name, size = "md", className }: PlayerAvatarProps) {
+export function PlayerAvatar({
+  name,
+  size = "md",
+  className,
+}: PlayerAvatarProps) {
   return (
     <div
       className={cn(
         "rounded-full bg-secondary flex items-center justify-center border border-border font-display",
         sizes[size],
-        className
+        className,
       )}
       title={name}
     >
-      {avatar}
+      {AVATARS[name.charCodeAt(0) % AVATARS.length]}
     </div>
   );
 }
