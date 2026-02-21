@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
+import { games, gamePlayers, players } from "../db/schema";
 import type { GameWithPlayers } from "../types";
 
 const app = new Hono();
@@ -21,22 +23,34 @@ app.post("/", async (c) => {
     return c.json({ error: "chips_per_player must be a positive number" }, 400);
   }
   if (!Array.isArray(player_ids) || player_ids.length === 0) {
-    return c.json({ error: "player_ids must be a non-empty array of player IDs" }, 400);
+    return c.json(
+      { error: "player_ids must be a non-empty array of player IDs" },
+      400,
+    );
   }
 
   const id = crypto.randomUUID();
   const date = new Date().toISOString();
 
-  db.run(
-    "INSERT INTO games (id, date, buy_in, chips_per_player, finished) VALUES (?, ?, ?, ?, 0)",
-    [id, date, buy_in, chips_per_player]
-  );
+  db.insert(games)
+    .values({
+      id,
+      date,
+      buyIn: buy_in,
+      chipsPerPlayer: chips_per_player,
+      finished: false,
+    })
+    .run();
 
   for (const playerId of player_ids) {
-    db.run(
-      "INSERT INTO game_players (game_id, player_id, initial_chips, final_chips) VALUES (?, ?, ?, NULL)",
-      [id, playerId, chips_per_player]
-    );
+    db.insert(gamePlayers)
+      .values({
+        gameId: id,
+        playerId,
+        initialChips: chips_per_player,
+        finalChips: null,
+      })
+      .run();
   }
 
   const game = getGameWithPlayers(id);
@@ -57,69 +71,77 @@ type FinalizeGameBody = {
 
 app.patch("/:id/finalize", async (c) => {
   const gameId = c.req.param("id");
-  const game = db
-    .query<{ finished: number }, [string]>("SELECT finished FROM games WHERE id = ?")
-    .get(gameId);
-  if (!game) return c.json({ error: "Game not found" }, 404);
-  if (game.finished) return c.json({ error: "Game is already finalized" }, 400);
+  const gameRow = db
+    .select({ finished: games.finished })
+    .from(games)
+    .where(eq(games.id, gameId))
+    .get();
+  if (!gameRow) return c.json({ error: "Game not found" }, 404);
+  if (gameRow.finished)
+    return c.json({ error: "Game is already finalized" }, 400);
 
   const body = await c.req.json<FinalizeGameBody>();
   const finalChips = body.final_chips;
   if (!finalChips || typeof finalChips !== "object") {
-    return c.json({ error: "final_chips must be an object { player_id: chips }" }, 400);
-  }
-
-  const participants = db
-    .query<{ player_id: string }, [string]>(
-      "SELECT player_id FROM game_players WHERE game_id = ?"
-    )
-    .all(gameId);
-
-  for (const { player_id } of participants) {
-    const chips = finalChips[player_id];
-    if (typeof chips !== "number" || chips < 0) {
-      return c.json(
-        { error: `Invalid final_chips for player ${player_id}. Must be a number >= 0` },
-        400
-      );
-    }
-    db.run(
-      "UPDATE game_players SET final_chips = ? WHERE game_id = ? AND player_id = ?",
-      [chips, gameId, player_id]
+    return c.json(
+      { error: "final_chips must be an object { player_id: chips }" },
+      400,
     );
   }
 
-  db.run("UPDATE games SET finished = 1 WHERE id = ?", [gameId]);
+  const participants = db
+    .select({ playerId: gamePlayers.playerId })
+    .from(gamePlayers)
+    .where(eq(gamePlayers.gameId, gameId))
+    .all();
+
+  for (const { playerId } of participants) {
+    const chips = finalChips[playerId];
+    if (typeof chips !== "number" || chips < 0) {
+      return c.json(
+        {
+          error: `Invalid final_chips for player ${playerId}. Must be a number >= 0`,
+        },
+        400,
+      );
+    }
+    db.update(gamePlayers)
+      .set({ finalChips: chips })
+      .where(
+        and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
+      )
+      .run();
+  }
+
+  db.update(games).set({ finished: true }).where(eq(games.id, gameId)).run();
   const updated = getGameWithPlayers(gameId);
   if (!updated) return c.json({ error: "Failed to finalize" }, 500);
   return c.json(toGameResponse(updated));
 });
 
 function getGameWithPlayers(gameId: string): GameWithPlayers | null {
-  const game = db
-    .query<
-      { id: string; date: string; buy_in: number; chips_per_player: number; finished: number },
-      [string]
-    >("SELECT id, date, buy_in, chips_per_player, finished FROM games WHERE id = ?")
-    .get(gameId);
-  if (!game) return null;
+  const gameRow = db.select().from(games).where(eq(games.id, gameId)).get();
+  if (!gameRow) return null;
 
-  const players = db
-    .query<
-      { player_id: string; name: string; initial_chips: number; final_chips: number | null },
-      [string]
-    >(
-      `SELECT gp.player_id, p.name, gp.initial_chips, gp.final_chips
-       FROM game_players gp
-       JOIN players p ON p.id = gp.player_id
-       WHERE gp.game_id = ?`
-    )
-    .all(gameId);
+  const playerRows = db
+    .select({
+      player_id: gamePlayers.playerId,
+      name: players.name,
+      initial_chips: gamePlayers.initialChips,
+      final_chips: gamePlayers.finalChips,
+    })
+    .from(gamePlayers)
+    .innerJoin(players, eq(players.id, gamePlayers.playerId))
+    .where(eq(gamePlayers.gameId, gameId))
+    .all();
 
   return {
-    ...game,
-    finished: Boolean(game.finished),
-    players,
+    id: gameRow.id,
+    date: gameRow.date,
+    buy_in: gameRow.buyIn,
+    chips_per_player: gameRow.chipsPerPlayer,
+    finished: gameRow.finished,
+    players: playerRows,
   };
 }
 

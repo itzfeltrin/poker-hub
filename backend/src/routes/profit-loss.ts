@@ -1,6 +1,8 @@
 import { Hono } from "hono";
+import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { pipe } from "remeda";
 import { db } from "../db";
+import { games, gamePlayers, players } from "../db/schema";
 import type { ProfitLoss } from "../types";
 import { PeriodFilter } from "../types";
 
@@ -18,7 +20,7 @@ function parsePeriod(value: string | undefined): PeriodFilter {
 function getStartDate(
   period: PeriodFilter,
   startDateQuery?: string,
-  _endDateQuery?: string
+  _endDateQuery?: string,
 ): string | null {
   const now = new Date();
   switch (period) {
@@ -46,12 +48,13 @@ function getStartDate(
   }
 }
 
-function getEndDate(period: PeriodFilter, endDateQuery?: string): string | null {
+function getEndDate(
+  period: PeriodFilter,
+  endDateQuery?: string,
+): string | null {
   if (period === PeriodFilter.Custom && endDateQuery) return endDateQuery;
   return new Date().toISOString();
 }
-
-type GameRow = { id: string; date: string; buy_in: number };
 
 app.get("/", (c) => {
   const { period, startDate, endDate } = pipe(
@@ -59,29 +62,44 @@ app.get("/", (c) => {
     parsePeriod,
     (period) => ({
       period,
-      startDate: getStartDate(period, c.req.query("start_date"), c.req.query("end_date")),
+      startDate: getStartDate(
+        period,
+        c.req.query("start_date"),
+        c.req.query("end_date"),
+      ),
       endDate: getEndDate(period, c.req.query("end_date")),
-    })
+    }),
   );
 
-  let games: GameRow[];
+  let gameRows: { id: string; date: string; buyIn: number }[];
+  const finishedCondition = eq(games.finished, true);
+
   if (startDate && endDate) {
-    games = db
-      .query<GameRow, [string, string]>(
-        "SELECT id, date, buy_in FROM games WHERE finished = 1 AND date >= ? AND date <= ? ORDER BY date"
+    gameRows = db
+      .select({ id: games.id, date: games.date, buyIn: games.buyIn })
+      .from(games)
+      .where(
+        and(
+          finishedCondition,
+          gte(games.date, startDate),
+          lte(games.date, endDate),
+        ),
       )
-      .all(startDate, endDate);
+      .orderBy(games.date)
+      .all();
   } else if (startDate) {
-    games = db
-      .query<GameRow, [string]>(
-        "SELECT id, date, buy_in FROM games WHERE finished = 1 AND date >= ? ORDER BY date"
-      )
-      .all(startDate);
+    gameRows = db
+      .select({ id: games.id, date: games.date, buyIn: games.buyIn })
+      .from(games)
+      .where(and(finishedCondition, gte(games.date, startDate)))
+      .orderBy(games.date)
+      .all();
   } else {
-    games = db
-      .query<GameRow, []>(
-        "SELECT id, date, buy_in FROM games WHERE finished = 1 ORDER BY date"
-      )
+    gameRows = db
+      .select({ id: games.id, date: games.date, buyIn: games.buyIn })
+      .from(games)
+      .where(finishedCondition)
+      .orderBy(games.date)
       .all();
   }
 
@@ -90,30 +108,34 @@ app.get("/", (c) => {
     { name: string; total_in: number; total_out: number }
   >();
 
-  for (const game of games) {
+  for (const game of gameRows) {
     const participants = db
-      .query<
-        { player_id: string; name: string; final_chips: number },
-        [string]
-      >(
-        `SELECT gp.player_id, p.name, gp.final_chips
-         FROM game_players gp
-         JOIN players p ON p.id = gp.player_id
-         WHERE gp.game_id = ? AND gp.final_chips IS NOT NULL`
+      .select({
+        player_id: gamePlayers.playerId,
+        name: players.name,
+        final_chips: gamePlayers.finalChips,
+      })
+      .from(gamePlayers)
+      .innerJoin(players, eq(players.id, gamePlayers.playerId))
+      .where(
+        and(eq(gamePlayers.gameId, game.id), isNotNull(gamePlayers.finalChips)),
       )
-      .all(game.id);
+      .all();
 
-    const totalChips = participants.reduce((s, p) => s + p.final_chips, 0);
+    const totalChips = participants.reduce(
+      (s, p) => s + (p.final_chips ?? 0),
+      0,
+    );
     if (totalChips === 0) continue;
 
     const numPlayers = participants.length;
-    const totalPool = game.buy_in * numPlayers;
+    const totalPool = game.buyIn * numPlayers;
 
     for (const p of participants) {
-      const payout = (p.final_chips / totalChips) * totalPool;
+      const payout = ((p.final_chips ?? 0) / totalChips) * totalPool;
       const entry = byPlayer.get(p.player_id);
       const name = entry?.name ?? p.name;
-      const total_in = (entry?.total_in ?? 0) + game.buy_in;
+      const total_in = (entry?.total_in ?? 0) + game.buyIn;
       const total_out = (entry?.total_out ?? 0) + payout;
       byPlayer.set(p.player_id, { name, total_in, total_out });
     }
@@ -126,7 +148,7 @@ app.get("/", (c) => {
       total_in,
       total_out,
       profit_loss: total_out - total_in,
-    })
+    }),
   );
 
   return c.json({

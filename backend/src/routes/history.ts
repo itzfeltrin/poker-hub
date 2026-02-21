@@ -1,40 +1,33 @@
 import { Hono } from "hono";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
+import { games, gamePlayers, players } from "../db/schema";
 import type { GameWithPlayers } from "../types";
 
 const app = new Hono();
 
-type GameRow = {
-  id: string;
-  date: string;
-  buy_in: number;
-  chips_per_player: number;
-  finished: number;
-};
-
 app.get("/", (c) => {
-  const games = db
-    .query<GameRow, []>(
-      "SELECT id, date, buy_in, chips_per_player, finished FROM games ORDER BY date DESC"
-    )
-    .all();
+  const gameRows = db.select().from(games).orderBy(desc(games.date)).all();
 
-  const result: GameWithPlayers[] = games.map((g) => {
-    const players = db
-      .query<
-        { player_id: string; name: string; initial_chips: number; final_chips: number | null },
-        [string]
-      >(
-        `SELECT gp.player_id, p.name, gp.initial_chips, gp.final_chips
-         FROM game_players gp
-         JOIN players p ON p.id = gp.player_id
-         WHERE gp.game_id = ?`
-      )
-      .all(g.id);
+  const result: GameWithPlayers[] = gameRows.map((g) => {
+    const playerRows = db
+      .select({
+        player_id: gamePlayers.playerId,
+        name: players.name,
+        initial_chips: gamePlayers.initialChips,
+        final_chips: gamePlayers.finalChips,
+      })
+      .from(gamePlayers)
+      .innerJoin(players, eq(players.id, gamePlayers.playerId))
+      .where(eq(gamePlayers.gameId, g.id))
+      .all();
     return {
-      ...g,
-      finished: Boolean(g.finished),
-      players,
+      id: g.id,
+      date: g.date,
+      buy_in: g.buyIn,
+      chips_per_player: g.chipsPerPlayer,
+      finished: g.finished,
+      players: playerRows,
     };
   });
 
@@ -51,7 +44,7 @@ app.get("/", (c) => {
         initial_chips: p.initial_chips,
         final_chips: p.final_chips,
       })),
-    }))
+    })),
   );
 });
 
