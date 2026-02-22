@@ -17,7 +17,7 @@ export const games = sqliteTable("games", {
   buyIn: real("buy_in").notNull(),
   chipsPerPlayer: integer("chips_per_player").notNull(),
   finished: integer("finished", { mode: "boolean" }).notNull().default(false),
-  location: text("location").notNull(),
+  location: text("location"),
 });
 
 export const gamePlayers = sqliteTable(

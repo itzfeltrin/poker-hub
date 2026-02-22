@@ -1,5 +1,9 @@
-import { useState } from "react";
-import { usePoker, GamePlayer } from "@/context/PokerContext";
+import {
+  usePlayersQuery,
+  useCreateGameMutation,
+  useFinalizeGameMutation,
+} from "@/api/hooks";
+import type { GamePlayer } from "@/utils/game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,68 +11,96 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const formSchema = z.object({
+  date: z.coerce.date({
+    errorMap: (_issue, _ctx) => {
+      return { message: "Data inválida" };
+    },
+  }),
+  location: z.string(),
+  buyIn: z.number().min(0, "Entrada é obrigatória"),
+  chipsPerPlayer: z.number().min(1, "Número de fichas é obrigatório"),
+  players: z.record(
+    z.string(),
+    z.object({
+      buyIn: z.number().min(0, "Entrada é obrigatória"),
+      cashOut: z.number().min(0, "Saída é obrigatória"),
+    }),
+  ),
+});
+
+type FormData = {
+  date: string;
+  location: string;
+  buyIn: number;
+  chipsPerPlayer: number;
+  players: Record<string, { buyIn: number; cashOut: number }>;
+};
+
+const defaultValues: FormData = {
+  date: new Date().toISOString().split("T")[0],
+  location: "",
+  buyIn: 0,
+  chipsPerPlayer: 0,
+  players: {},
+};
 
 export default function NewGamePage() {
-  const { players, addGame } = usePoker();
+  // --- API hooks ---
+  const { data: players = [] } = usePlayersQuery();
+  const createGameMut = useCreateGameMutation();
+  const finalizeGameMut = useFinalizeGameMutation();
+
+  // --- Routing ---
   const navigate = useNavigate();
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [location, setLocation] = useState("");
-  const [buyIn, setBuyIn] = useState("");
-  const [chipsPerPlayer, setChipsPerPlayer] = useState("");
-  const [selectedPlayers, setSelectedPlayers] = useState<
-    Record<string, { buyIn: string; cashOut: string }>
-  >({});
+
+  // --- Form ---
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<FormData>({
+    defaultValues,
+    resolver: zodResolver(formSchema),
+  });
+
+  const formBuyIn = watch("buyIn");
+  const formPlayers = watch("players") ?? {};
 
   const togglePlayer = (id: string) => {
-    setSelectedPlayers((prev) => {
-      const copy = { ...prev };
-      if (copy[id]) {
-        delete copy[id];
-      } else {
-        copy[id] = { buyIn: "", cashOut: "" };
-      }
-      return copy;
-    });
-  };
-
-  const updateField = (
-    id: string,
-    field: "buyIn" | "cashOut",
-    value: string,
-  ) => {
-    setSelectedPlayers((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], [field]: value },
-    }));
-  };
-
-  const handleSubmit = async () => {
-    const entries = Object.entries(selectedPlayers);
-    if (entries.length < 2) {
-      toast.error("Selecione pelo menos 2 jogadores");
-      return;
+    const current = watch("players") ?? {};
+    if (current[id]) {
+      const { [id]: _, ...rest } = current;
+      setValue("players", rest);
+    } else {
+      setValue("players", {
+        ...current,
+        [id]: { buyIn: formBuyIn, cashOut: 0 },
+      });
     }
+  };
 
-    const gamePlayers: GamePlayer[] = entries.map(([playerId, data]) => ({
-      playerId,
-      buyIn: Number(data.buyIn) || 0,
-      cashOut: Number(data.cashOut) || 0,
-    }));
-
-    const buyInNum = buyIn.trim() ? Number(buyIn.replace(",", ".")) : undefined;
-    const chipsNum = chipsPerPlayer.trim()
-      ? Math.max(1, Math.floor(Number(chipsPerPlayer)))
-      : undefined;
+  const onSubmit = async (data: FormData) => {
+    const players = Object.entries(data.players).map(
+      ([playerId, playerData]) => ({
+        playerId,
+        buyIn: playerData.buyIn,
+        cashOut: playerData.cashOut,
+      }),
+    );
 
     try {
-      await addGame({
-        date,
-        location: location.trim(),
-        players: gamePlayers,
-        ...(buyInNum != null && !Number.isNaN(buyInNum) && { buyIn: buyInNum }),
-        ...(chipsNum != null && !Number.isNaN(chipsNum) && {
-          chipsPerPlayer: chipsNum,
-        }),
+      await createGameMut.mutateAsync({
+        buy_in: data.buyIn,
+        chips_per_player: data.chipsPerPlayer,
+        player_ids: players.map((p) => p.playerId),
+        location: data.location,
       });
       toast.success("Partida registrada!");
       navigate({ to: "/history" });
@@ -90,19 +122,23 @@ export default function NewGamePage() {
         <div className="space-y-2">
           <Label>Data</Label>
           <Input
+            {...register("date", { valueAsDate: true })}
             type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
             className="bg-card"
+            tabIndex={1}
+            aria-invalid={!!errors.date}
           />
+          {errors.date && (
+            <p className="text-sm text-destructive">{errors.date.message}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>Local</Label>
           <Input
+            {...register("location")}
             placeholder="ex.: Casa do Caio"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
             className="bg-card"
+            tabIndex={2}
           />
         </div>
         <div className="space-y-2">
@@ -110,12 +146,12 @@ export default function NewGamePage() {
           <Input
             type="number"
             inputMode="decimal"
-            step={0.01}
+            step={0.1}
             min={0}
             placeholder="0,00"
-            value={buyIn}
-            onChange={(e) => setBuyIn(e.target.value)}
+            {...register("buyIn", { valueAsNumber: true })}
             className="bg-card"
+            tabIndex={3}
           />
         </div>
         <div className="space-y-2">
@@ -123,12 +159,12 @@ export default function NewGamePage() {
           <Input
             type="number"
             inputMode="numeric"
-            step={1}
+            step={50}
             min={1}
             placeholder="Ex: 1000"
-            value={chipsPerPlayer}
-            onChange={(e) => setChipsPerPlayer(e.target.value)}
+            {...register("chipsPerPlayer", { valueAsNumber: true })}
             className="bg-card"
+            tabIndex={4}
           />
         </div>
       </div>
@@ -137,7 +173,7 @@ export default function NewGamePage() {
         <Label className="text-base">Jogadores</Label>
         <div className="space-y-3">
           {players.map((player) => {
-            const selected = !!selectedPlayers[player.id];
+            const selected = !!formPlayers[player.id];
             return (
               <div
                 key={player.id}
@@ -164,11 +200,10 @@ export default function NewGamePage() {
                       <Input
                         type="number"
                         placeholder="0"
-                        value={selectedPlayers[player.id].buyIn}
-                        onChange={(e) =>
-                          updateField(player.id, "buyIn", e.target.value)
-                        }
                         className="bg-card"
+                        {...register(`players.${player.id}.buyIn`, {
+                          valueAsNumber: true,
+                        })}
                       />
                     </div>
                     <div className="space-y-1">
@@ -178,11 +213,10 @@ export default function NewGamePage() {
                       <Input
                         type="number"
                         placeholder="0"
-                        value={selectedPlayers[player.id].cashOut}
-                        onChange={(e) =>
-                          updateField(player.id, "cashOut", e.target.value)
-                        }
                         className="bg-card"
+                        {...register(`players.${player.id}.cashOut`, {
+                          valueAsNumber: true,
+                        })}
                       />
                     </div>
                   </div>
@@ -193,7 +227,11 @@ export default function NewGamePage() {
         </div>
       </div>
 
-      <Button onClick={handleSubmit} className="w-full sm:w-auto" size="lg">
+      <Button
+        onClick={handleSubmit(onSubmit)}
+        className="w-full sm:w-auto"
+        size="lg"
+      >
         Salvar partida
       </Button>
     </div>

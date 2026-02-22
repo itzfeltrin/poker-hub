@@ -1,10 +1,14 @@
-import { usePoker } from "@/context/PokerContext";
+import { useHistoryQuery, usePlayersQuery } from "@/api/hooks";
+import { apiGameToGame } from "@/utils/game";
+import { getPlayerById } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { format } from "date-fns";
-import { formatCurrency, formatPnl } from "@/lib/utils";
+import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
 
 export default function HistoryPage() {
-  const { games, getPlayerById } = usePoker();
+  const { data: historyGames } = useHistoryQuery();
+  const { data: players } = usePlayersQuery();
+
+  const games = (historyGames ?? []).map((g) => apiGameToGame(g));
   const sorted = [...games].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
@@ -37,7 +41,7 @@ export default function HistoryPage() {
                       {game.location}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(game.date), "EEEE, MMM d, yyyy")}
+                      {formatDate(game.date)}
                     </p>
                   </div>
                   <span className="text-sm font-display font-semibold text-accent">
@@ -59,7 +63,7 @@ export default function HistoryPage() {
                     </thead>
                     <tbody>
                       {game.players.map((gp) => {
-                        const player = getPlayerById(gp.playerId);
+                        const player = getPlayerById(players, gp.playerId);
                         if (!player) return null;
                         const pnl = gp.cashOut - gp.buyIn;
                         return (

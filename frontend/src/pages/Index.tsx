@@ -1,14 +1,23 @@
-import { usePoker } from "@/context/PokerContext";
+import {
+  usePlayersQuery,
+  useHistoryQuery,
+  useProfitLossQuery,
+} from "@/api/hooks";
+import { apiGameToGame } from "@/utils/game";
+import { getPlayerPnL, getPlayerById } from "@/utils/player";
 import { StatCard } from "@/components/StatCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Link } from "@tanstack/react-router";
 import { Users, Gamepad2, TrendingUp, Plus, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { formatPnl, formatCurrency } from "@/lib/utils";
+import { formatPnl, formatCurrency, formatDate } from "@/lib/utils";
 
 const Index = () => {
-  const { players, games, getPlayerPnL, getPlayerById } = usePoker();
+  const { data: players = [] } = usePlayersQuery();
+  const { data: historyGames } = useHistoryQuery();
+  const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
+
+  const games = (historyGames ?? []).map((g) => apiGameToGame(g));
 
   const totalPot = games.reduce(
     (sum, g) => sum + g.players.reduce((s, p) => s + p.buyIn, 0),
@@ -17,7 +26,7 @@ const Index = () => {
 
   const topPlayer = players.reduce(
     (best, p) => {
-      const pnl = getPlayerPnL(p.id);
+      const pnl = getPlayerPnL(profitLoss, p.id);
       return pnl > best.pnl ? { player: p, pnl } : best;
     },
     { player: players[0], pnl: -Infinity },
@@ -89,7 +98,7 @@ const Index = () => {
                 <div>
                   <p className="font-display font-semibold">{game.location}</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(game.date), "MMM d, yyyy")}
+                    {formatDate(game.date)}
                   </p>
                 </div>
                 <span className="text-sm text-muted-foreground">
@@ -98,7 +107,7 @@ const Index = () => {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 {game.players.map((gp) => {
-                  const player = getPlayerById(gp.playerId);
+                  const player = getPlayerById(players, gp.playerId);
                   if (!player) return null;
                   const pnl = gp.cashOut - gp.buyIn;
                   return (

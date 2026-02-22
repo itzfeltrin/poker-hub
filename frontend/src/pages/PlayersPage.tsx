@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { usePoker } from "@/context/PokerContext";
+import {
+  usePlayersQuery,
+  useCreatePlayerMutation,
+  useHistoryQuery,
+  useProfitLossQuery,
+} from "@/api/hooks";
+import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,18 +14,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
 
 export default function PlayersPage() {
-  const {
-    players,
-    addPlayer,
-    removePlayer,
-    getPlayerPnL,
-    getPlayerGamesCount,
-  } = usePoker();
+  const { data: players = [] } = usePlayersQuery();
+  const { data: historyGames } = useHistoryQuery();
+  const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
+  const createPlayerMut = useCreatePlayerMutation();
   const [newName, setNewName] = useState("");
 
   const handleAdd = () => {
     if (newName.trim()) {
-      addPlayer(newName.trim());
+      createPlayerMut.mutate(newName.trim());
       setNewName("");
     }
   };
@@ -50,8 +53,8 @@ export default function PlayersPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence>
           {players.map((player) => {
-            const pnl = getPlayerPnL(player.id);
-            const gamesCount = getPlayerGamesCount(player.id);
+            const pnl = getPlayerPnL(profitLoss, player.id);
+            const gamesCount = getPlayerGamesCount(historyGames, player.id);
             return (
               <motion.div
                 key={player.id}
@@ -83,7 +86,7 @@ export default function PlayersPage() {
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-loss shrink-0"
-                  onClick={() => removePlayer(player.id)}
+                  onClick={() => {}}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

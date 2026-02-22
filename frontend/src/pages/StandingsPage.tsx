@@ -1,16 +1,23 @@
-import { usePoker } from "@/context/PokerContext";
+import {
+  usePlayersQuery,
+  useHistoryQuery,
+  useProfitLossQuery,
+} from "@/api/hooks";
+import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { motion } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
 
 export default function StandingsPage() {
-  const { players, getPlayerPnL, getPlayerGamesCount } = usePoker();
+  const { data: players = [] } = usePlayersQuery();
+  const { data: historyGames } = useHistoryQuery();
+  const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
 
   const standings = players
     .map((p) => ({
       ...p,
-      pnl: getPlayerPnL(p.id),
-      games: getPlayerGamesCount(p.id),
+      pnl: getPlayerPnL(profitLoss, p.id),
+      games: getPlayerGamesCount(historyGames, p.id),
     }))
     .sort((a, b) => b.pnl - a.pnl);
 
