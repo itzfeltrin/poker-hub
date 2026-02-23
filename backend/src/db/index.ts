@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import * as schema from "./schema";
+import * as schema from "@poker-hub/db/schema";
 
 const sqlite = new Database("poker-hub.sqlite", { create: true });
 const db = drizzle(sqlite, { schema });

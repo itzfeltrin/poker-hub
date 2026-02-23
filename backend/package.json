@@ -7,6 +7,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@poker-hub/db": "workspace:*",
     "@hono/swagger-ui": "^0.5.3",
     "better-sqlite3": "^12.6.2",
     "drizzle-orm": "^0.45.1",

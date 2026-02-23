@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { players } from "../db/schema";
+import { players } from "@poker-hub/db/schema";
 import type { Player } from "../types";
 
 const app = new Hono();

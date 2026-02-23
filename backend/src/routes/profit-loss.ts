@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { pipe } from "remeda";
 import { db } from "../db";
-import { games, gamePlayers, players } from "../db/schema";
+import { games, gamePlayers, players } from "@poker-hub/db/schema";
 import type { ProfitLoss } from "../types";
 import { PeriodFilter } from "../types";
 

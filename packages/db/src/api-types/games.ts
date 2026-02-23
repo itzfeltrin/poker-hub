@@ -1,8 +1,8 @@
 /**
  * API types derived from the Drizzle schema (single source of truth).
- * Add new columns in db/schema.ts only; these types stay in sync.
+ * Add new columns in schema.ts only; these types stay in sync.
  */
-import type { GamePlayerRow, GameRow } from "../db/schema";
+import type { GamePlayerRow, GameRow } from "../schema";
 import type { RowToApi } from "../lib/camel-to-snake";
 
 type ApiGameRow = RowToApi<GameRow>;

@@ -1,6 +1,2 @@
-# deps
-node_modules/
-
-# db
-*.sqlite
-*.sqlite-journal
+# Backend-specific (root .gitignore covers node_modules, .turbo, db, logs, etc.)
+# Add any backend-only ignores here if needed.

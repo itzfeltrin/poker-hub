@@ -1,0 +1,20 @@
+{
+  "name": "poker-hub",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "db:generate": "turbo run db:generate --filter=backend",
+    "db:migrate": "turbo run db:migrate --filter=backend",
+    "db:studio": "turbo run db:studio --filter=backend"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "packageManager": "bun@1.2.0"
+}
