@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { games, gamePlayers, players } from "@poker-hub/db/schema";
-import type { GameWithPlayers } from "../types";
 import type { ApiGame } from "@poker-hub/db";
 
 const app = new Hono();

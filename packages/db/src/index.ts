@@ -1,17 +1,9 @@
-export {
-  gamePlayers,
-  games,
-  players,
-  type GamePlayerRow,
-  type GameRow,
-  type PlayerRow,
-} from "./schema";
-
-export type { RowToApi } from "./lib/camel-to-snake";
+export { gamePlayers, games, players } from "./schema";
 
 export type {
   ApiGame,
   ApiGameCreate,
   ApiGameFinalize,
-  ApiGamePlayer,
 } from "./api-types/games";
+
+export type { ApiPlayer, ApiPlayerCreate } from "./api-types/players";
