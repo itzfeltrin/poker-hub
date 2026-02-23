@@ -5,10 +5,9 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
 
 export default function HistoryPage() {
-  const { data: historyGames } = useHistoryQuery();
+  const { data: games } = useHistoryQuery();
   const { data: players } = usePlayersQuery();
 
-  const games = (historyGames ?? []).map((g) => apiGameToGame(g));
   const sorted = [...games].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
@@ -29,7 +28,7 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           {sorted.map((game) => {
-            const totalPot = game.players.reduce((s, p) => s + p.buyIn, 0);
+            const totalPot = game.buy_in * game.players.length;
             return (
               <div
                 key={game.id}
@@ -63,12 +62,16 @@ export default function HistoryPage() {
                     </thead>
                     <tbody>
                       {game.players.map((gp) => {
-                        const player = getPlayerById(players, gp.playerId);
+                        const player = getPlayerById(players, gp.player_id);
                         if (!player) return null;
-                        const pnl = gp.cashOut - gp.buyIn;
+                        const pricePerChip =
+                          game.buy_in / game.chips_per_player;
+                        const initialPrice = gp.initial_chips * pricePerChip;
+                        const finalPrice = gp.final_chips * pricePerChip;
+                        const pnl = finalPrice - initialPrice;
                         return (
                           <tr
-                            key={gp.playerId}
+                            key={gp.player_id}
                             className="border-b border-border/50 last:border-0"
                           >
                             <td className="py-2.5">
@@ -78,10 +81,10 @@ export default function HistoryPage() {
                               </div>
                             </td>
                             <td className="text-right py-2.5">
-                              {formatCurrency(gp.buyIn)}
+                              {formatCurrency(initialPrice)}
                             </td>
                             <td className="text-right py-2.5">
-                              {formatCurrency(gp.cashOut)}
+                              {formatCurrency(finalPrice)}
                             </td>
                             <td
                               className={`text-right py-2.5 font-semibold ${

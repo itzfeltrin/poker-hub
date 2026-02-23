@@ -3,17 +3,12 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { games, gamePlayers, players } from "../db/schema";
 import type { GameWithPlayers } from "../types";
+import type { ApiGameCreate } from "../api-types/games";
 
 const app = new Hono();
 
-type CreateGameBody = {
-  buy_in: number;
-  chips_per_player: number;
-  player_ids: string[];
-};
-
 app.post("/", async (c) => {
-  const body = await c.req.json<CreateGameBody>();
+  const body = await c.req.json<ApiGameCreate>();
   const { buy_in, chips_per_player, player_ids } = body;
 
   if (typeof buy_in !== "number" || buy_in <= 0) {
@@ -30,12 +25,12 @@ app.post("/", async (c) => {
   }
 
   const id = crypto.randomUUID();
-  const date = new Date().toISOString();
 
   db.insert(games)
     .values({
       id,
-      date,
+      date: body.date,
+      location: body.location,
       buyIn: buy_in,
       chipsPerPlayer: chips_per_player,
       finished: false,
@@ -140,6 +135,7 @@ function getGameWithPlayers(gameId: string): GameWithPlayers | null {
     date: gameRow.date,
     buy_in: gameRow.buyIn,
     chips_per_player: gameRow.chipsPerPlayer,
+    location: gameRow.location,
     finished: gameRow.finished,
     players: playerRows,
   };
@@ -151,6 +147,7 @@ function toGameResponse(g: GameWithPlayers) {
     date: g.date,
     buy_in: g.buy_in,
     chips_per_player: g.chips_per_player,
+    location: g.location,
     finished: g.finished,
     players: g.players.map((p) => ({
       player_id: p.player_id,

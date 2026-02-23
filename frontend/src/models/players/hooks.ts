@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { ApiPlayer, ApiPlayerCreate } from "./types";
+import type { ApiPlayer, ApiPlayerCreate } from "@shared/models/players/types";
 
 const QUERY_KEYS = {
   players: ["players"] as const,

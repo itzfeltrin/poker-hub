@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { ApiGame, ApiGameCreate, ApiGameFinalize } from "./types";
+import type {
+  ApiGame,
+  ApiGameCreate,
+  ApiGameFinalize,
+} from "@shared/models/games/types";
 
 const QUERY_KEYS = {
   games: ["games"] as const,

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { ApiProfitLossResponse } from "./types";
+import type { ApiProfitLossResponse } from "@shared/models/profit-loss/types";
 
 const QUERY_KEYS = {
   profitLoss: (params: {
@@ -24,7 +24,7 @@ export function useProfitLossQuery(params?: {
     queryKey: QUERY_KEYS.profitLoss(params ?? {}),
     queryFn: () =>
       api.get<ApiProfitLossResponse>(
-        "/profit-loss" + (query ? `?${query}` : "")
+        "/profit-loss" + (query ? `?${query}` : ""),
       ),
   });
 }

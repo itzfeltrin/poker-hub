@@ -8,6 +8,7 @@ export type Game = {
   date: string;
   buy_in: number;
   chips_per_player: number;
+  location: string | null;
   finished: boolean;
 };
 

@@ -3,13 +3,14 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import { games, gamePlayers, players } from "../db/schema";
 import type { GameWithPlayers } from "../types";
+import type { ApiGame } from "../api-types/games";
 
 const app = new Hono();
 
 app.get("/", (c) => {
   const gameRows = db.select().from(games).orderBy(desc(games.date)).all();
 
-  const result: GameWithPlayers[] = gameRows.map((g) => {
+  const result: ApiGame[] = gameRows.map((g) => {
     const playerRows = db
       .select({
         player_id: gamePlayers.playerId,
@@ -21,6 +22,7 @@ app.get("/", (c) => {
       .innerJoin(players, eq(players.id, gamePlayers.playerId))
       .where(eq(gamePlayers.gameId, g.id))
       .all();
+
     return {
       id: g.id,
       date: g.date,
@@ -28,6 +30,7 @@ app.get("/", (c) => {
       chips_per_player: g.chipsPerPlayer,
       finished: g.finished,
       players: playerRows,
+      location: g.location,
     };
   });
 
@@ -38,6 +41,7 @@ app.get("/", (c) => {
       buy_in: g.buy_in,
       chips_per_player: g.chips_per_player,
       finished: g.finished,
+      location: g.location,
       players: g.players.map((p) => ({
         player_id: p.player_id,
         name: p.name,

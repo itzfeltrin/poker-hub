@@ -35,6 +35,6 @@ export const gamePlayers = sqliteTable(
   (t) => [primaryKey({ columns: [t.gameId, t.playerId] })],
 );
 
-export type PlayerRow = typeof players.$inferSelect;
-export type GameRow = typeof games.$inferSelect;
-export type GamePlayerRow = typeof gamePlayers.$inferSelect;
+export type PlayerRow = (typeof players)["$inferSelect"];
+export type GameRow = (typeof games)["$inferSelect"];
+export type GamePlayerRow = (typeof gamePlayers)["$inferSelect"];

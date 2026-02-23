@@ -101,6 +101,7 @@ export default function NewGamePage() {
         chips_per_player: data.chipsPerPlayer,
         player_ids: players.map((p) => p.playerId),
         location: data.location,
+        date: data.date,
       });
       toast.success("Partida registrada!");
       navigate({ to: "/history" });
@@ -187,6 +188,7 @@ export default function NewGamePage() {
                   <Checkbox
                     checked={selected}
                     onCheckedChange={() => togglePlayer(player.id)}
+                    tabIndex={5}
                   />
                   <PlayerAvatar name={player.name} size="sm" />
                   <span className="font-medium flex-1">{player.name}</span>
@@ -217,6 +219,7 @@ export default function NewGamePage() {
                         {...register(`players.${player.id}.cashOut`, {
                           valueAsNumber: true,
                         })}
+                        tabIndex={6}
                       />
                     </div>
                   </div>

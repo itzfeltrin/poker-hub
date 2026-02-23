@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   usePlayersQuery,
   useCreatePlayerMutation,
@@ -9,22 +8,49 @@ import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const formSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório"),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+const defaultValues: FormData = {
+  name: "",
+};
 
 export default function PlayersPage() {
+  // --- API hooks ---
   const { data: players = [] } = usePlayersQuery();
   const { data: historyGames } = useHistoryQuery();
   const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
   const createPlayerMut = useCreatePlayerMutation();
-  const [newName, setNewName] = useState("");
 
-  const handleAdd = () => {
-    if (newName.trim()) {
-      createPlayerMut.mutate(newName.trim());
-      setNewName("");
-    }
+  // --- Form ---
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    defaultValues,
+    resolver: zodResolver(formSchema),
+  });
+
+  const onSubmit = (data: FormData) => {
+    createPlayerMut.mutate(
+      { name: data.name.trim() },
+      {
+        onSuccess: () => reset(),
+      },
+    );
   };
 
   return (
@@ -36,19 +62,30 @@ export default function PlayersPage() {
         </p>
       </div>
 
-      <div className="flex gap-3 max-w-md">
-        <Input
-          placeholder="Nome do jogador..."
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          className="bg-card"
-        />
-        <Button onClick={handleAdd} disabled={!newName.trim()}>
-          <Plus className="h-4 w-4 mr-2" />
-          Adicionar
-        </Button>
-      </div>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex flex-col gap-3 max-w-md"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="player-name">Nome do jogador</Label>
+          <div className="flex gap-3">
+            <Input
+              id="player-name"
+              placeholder="Nome do jogador..."
+              className="bg-card flex-1"
+              aria-invalid={!!errors.name}
+              {...register("name")}
+            />
+            <Button type="submit" disabled={isSubmitting}>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar
+            </Button>
+          </div>
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name.message}</p>
+          )}
+        </div>
+      </form>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence>

@@ -23,9 +23,19 @@ export function formatPnl(value: number): string {
   );
 }
 
-/** Formats a date as a string in the format "EEEE, d MMMM, yyyy". */
+/**
+ * Formats a date string as "EEEE, d MMMM, yyyy".
+ * Uses UTC date parts so values like "2026-02-13T00:00:00.000Z" display as the 13th
+ * (calendar date) instead of shifting to the previous day in timezones behind UTC.
+ */
 export function formatDate(date: string): string {
-  return format(new Date(date), "EEEE, d MMMM, yyyy", {
+  const d = new Date(date);
+  const utcDay = new Date(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+  );
+  return format(utcDay, "EEEE, d MMMM, yyyy", {
     locale: ptBR,
   });
 }
