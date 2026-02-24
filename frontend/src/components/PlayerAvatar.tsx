@@ -3,14 +3,15 @@ import { cn } from "@/lib/utils";
 
 interface PlayerAvatarProps {
   name: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }
 
 const sizes = {
-  sm: "h-8 w-8 text-sm",
-  md: "h-10 w-10 text-lg",
-  lg: "h-14 w-14 text-2xl",
+  xs: "size-6 text-xs",
+  sm: "size-8 text-sm",
+  md: "size-10 text-lg",
+  lg: "size-14 text-2xl",
 };
 
 export function PlayerAvatar({

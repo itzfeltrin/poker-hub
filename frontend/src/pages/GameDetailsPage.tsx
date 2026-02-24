@@ -53,30 +53,37 @@ export default function GameDetailsPage() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-8">
-      <div className="flex items-center justify-between gap-4">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="-ml-2 h-8 px-2 md:h-9 md:px-3"
+        >
           <Link to="/history">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Histórico
+            <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
+            <span className="text-xs md:text-sm">Histórico</span>
           </Link>
         </Button>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground md:text-sm">
             {formatDate(game.date)}
           </p>
-          <p className="font-display font-semibold">{game.location ?? "—"}</p>
+          <p className="font-display text-sm font-semibold md:text-base">
+            {game.location ?? "—"}
+          </p>
         </div>
       </div>
 
       {/* Poker table: oval seen from above */}
-      <div className="relative mx-auto max-w-2xl">
+      <div className="relative mx-auto max-w-sm md:max-w-2xl">
         <div
           className="relative w-full overflow-visible"
           style={{ paddingBottom: "75%" }}
         >
           {/* Table felt (oval) */}
           <div
-            className="absolute inset-0 rounded-[50%] border-[12px] shadow-2xl"
+            className="absolute inset-0 rounded-[50%] border-8 shadow-2xl md:border-[12px]"
             style={{
               background: "hsl(var(--felt))",
               borderColor: "hsl(30 25% 12%)",
@@ -87,15 +94,15 @@ export default function GameDetailsPage() {
 
           {/* Pot in center */}
           <div
-            className="absolute left-1/2 top-1/2 flex min-w-[80px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-xl border-2 border-amber-900/50 bg-amber-950/80 px-4 py-2 shadow-lg"
+            className="absolute left-1/2 top-1/2 flex min-w-[56px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-lg border-2 border-amber-900/50 bg-amber-950/80 px-2 py-1 shadow-lg md:min-w-[80px] md:rounded-xl md:px-4 md:py-2"
             style={{
               boxShadow: "inset 0 0 20px rgba(0,0,0,0.3)",
             }}
           >
-            <span className="text-[10px] uppercase tracking-wider text-amber-200/80">
+            <span className="text-[8px] uppercase tracking-wider text-amber-200/80 md:text-[10px]">
               Pote
             </span>
-            <span className="font-display text-lg font-bold text-amber-100">
+            <span className="font-display text-sm font-bold text-amber-100 md:text-lg">
               {formatCurrency(totalPot)}
             </span>
           </div>
@@ -140,22 +147,26 @@ export default function GameDetailsPage() {
               >
                 {/* Chip stack indicator */}
                 <div
-                  className="mb-1 flex flex-col items-center justify-center rounded-lg border border-amber-800/60 bg-amber-950/90 shadow-md p-1 px-2"
+                  className="mb-0.5 flex h-9 w-10 flex-col items-center justify-center rounded border border-amber-800/60 bg-amber-950/90 p-0.5 shadow-md md:mb-1 md:h-12 md:w-14 md:rounded-lg md:p-1 md:px-2"
                   title={`${chips} fichas · ${formatCurrency(chipValue)}`}
                 >
-                  <span className="text-[10px] text-amber-200/90">
+                  <span className="text-[8px] text-amber-200/90 md:text-[10px]">
                     {chips} f
                   </span>
                   <span
-                    className={`text-xs font-semibold ${pnlClass}`}
+                    className={`text-[10px] font-semibold md:text-xs ${pnlClass}`}
                   >
                     {formatCurrency(chipValue)}
                   </span>
                 </div>
                 {/* Seat / player */}
-                <div className="flex h-20 w-24 flex-col items-center justify-center rounded-xl border-2 border-border bg-card/95 py-2 shadow-lg">
-                  <PlayerAvatar name={player.name} size="md" />
-                  <span className="mt-1 w-full truncate px-1 text-center text-sm font-medium">
+                <div className="flex h-14 w-16 flex-col items-center justify-center rounded-lg border-2 border-border bg-card/95 py-1 shadow-lg md:h-20 md:w-24 md:rounded-xl md:py-2">
+                  <PlayerAvatar
+                    name={player.name}
+                    size="xs"
+                    className="sm:size-10 sm:text-lg"
+                  />
+                  <span className="mt-0.5 w-full truncate px-0.5 text-center text-xs font-medium md:mt-1 md:px-1 md:text-sm">
                     {player.name}
                   </span>
                 </div>
@@ -166,7 +177,7 @@ export default function GameDetailsPage() {
       </div>
 
       {/* Summary below table */}
-      <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground md:gap-4 md:text-sm">
         <span>Buy-in: {formatCurrency(game.buy_in)}</span>
         <span>·</span>
         <span>{game.chips_per_player} fichas/jogador</span>
@@ -180,8 +191,11 @@ export default function GameDetailsPage() {
 
       {!game.finished && (
         <div className="flex justify-center">
-          <Button onClick={() => setFinalizeOpen(true)} className="gap-2">
-            <CheckCircle className="h-4 w-4" />
+          <Button
+            onClick={() => setFinalizeOpen(true)}
+            className="gap-1.5 text-sm md:gap-2 md:text-base"
+          >
+            <CheckCircle className="h-3.5 w-3.5 md:h-4 md:w-4" />
             Finalizar partida
           </Button>
         </div>
