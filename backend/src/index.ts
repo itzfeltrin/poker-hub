@@ -7,31 +7,32 @@ import profitLoss from "./routes/profit-loss";
 import { openApiDoc } from "./openapi";
 
 const app = new Hono();
-
-// API root (only when not serving SPA from same server)
 const isProduction = process.env.NODE_ENV === "production";
+
+// Mount API under /api so frontend (which calls {{base}}/api/...) works in production
+const api = new Hono();
 if (!isProduction) {
-  app.get("/", (c) =>
+  api.get("/", (c) =>
     c.json({
       name: "Poker Hub API",
       endpoints: {
-        players: "/players",
-        games: "/games",
-        history: "/history",
-        profit_loss: "/profit-loss",
-        docs: "/docs",
+        players: "/api/players",
+        games: "/api/games",
+        history: "/api/history",
+        profit_loss: "/api/profit-loss",
+        docs: "/api/docs",
       },
     })
   );
 }
+api.get("/doc", (c) => c.json(openApiDoc));
+api.get("/docs", swaggerUI({ url: "/api/doc" }));
+api.route("/players", players);
+api.route("/games", games);
+api.route("/history", history);
+api.route("/profit-loss", profitLoss);
 
-app.get("/doc", (c) => c.json(openApiDoc));
-app.get("/docs", swaggerUI({ url: "/doc" }));
-
-app.route("/players", players);
-app.route("/games", games);
-app.route("/history", history);
-app.route("/profit-loss", profitLoss);
+app.route("/api", api);
 
 // Production: serve frontend static files and SPA fallback
 if (isProduction) {
