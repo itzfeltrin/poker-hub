@@ -90,9 +90,11 @@ const Index = () => {
         </div>
         <div className="space-y-3">
           {recentGames.map((game) => (
-            <div
+            <Link
               key={game.id}
-              className="rounded-xl border border-border bg-card p-4 card-hover"
+              to="/games/$gameId"
+              params={{ gameId: game.id }}
+              className="block rounded-xl border border-border bg-card p-4 card-hover transition-colors hover:border-primary/30"
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -129,7 +131,7 @@ const Index = () => {
                   );
                 })}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

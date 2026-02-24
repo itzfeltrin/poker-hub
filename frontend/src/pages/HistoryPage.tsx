@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useHistoryQuery, usePlayersQuery } from "@/api/hooks";
 import { apiGameToGame } from "@/utils/game";
 import { getPlayerById } from "@/utils/player";
@@ -5,7 +6,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
 
 export default function HistoryPage() {
-  const { data: games } = useHistoryQuery();
+  const { data: games = [] } = useHistoryQuery();
   const { data: players } = usePlayersQuery();
 
   const sorted = [...games].sort((a, b) => b.date.localeCompare(a.date));
@@ -30,9 +31,11 @@ export default function HistoryPage() {
           {sorted.map((game) => {
             const totalPot = game.buy_in * game.players.length;
             return (
-              <div
+              <Link
                 key={game.id}
-                className="rounded-xl border border-border bg-card p-5 card-hover"
+                to="/games/$gameId"
+                params={{ gameId: game.id }}
+                className="block rounded-xl border border-border bg-card p-5 card-hover transition-colors hover:border-primary/30"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -99,7 +102,7 @@ export default function HistoryPage() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
