@@ -59,6 +59,9 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATABASE_PATH=/data/poker-hub.sqlite
 
+# Ensure DB directory exists and is writable (PaaS often run as non-root)
+RUN mkdir -p /data && chmod 777 /data
+
 EXPOSE 3000
 
 # Run from backend dir so migrations (drizzle/) and ./public resolve correctly
