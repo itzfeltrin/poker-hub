@@ -45,7 +45,7 @@ function makeFinalizeSchema(initialChipsTotal: number) {
         z.coerce
           .number()
           .or(z.nan().transform(() => 0))
-          .pipe(z.number().min(1, "Deve ser ≥ 0")),
+          .pipe(z.number().min(0, "Deve ser ≥ 0")),
       ),
     })
     .refine(
@@ -99,7 +99,6 @@ export function FinalizeGameDialog({
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<FinalizeFormData>({
     defaultValues: { final_chips: defaultFinalChips },

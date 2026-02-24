@@ -15,8 +15,8 @@ function seatPosition(
 ) {
   const angle = (2 * Math.PI * index) / total - Math.PI / 2;
   return {
-    x: 50 + (radiusX * Math.cos(angle)),
-    y: 50 + (radiusY * Math.sin(angle)),
+    x: 50 + radiusX * Math.cos(angle),
+    y: 50 + radiusY * Math.sin(angle),
   };
 }
 
@@ -61,7 +61,9 @@ export default function GameDetailsPage() {
           </Link>
         </Button>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">{formatDate(game.date)}</p>
+          <p className="text-sm text-muted-foreground">
+            {formatDate(game.date)}
+          </p>
           <p className="font-display font-semibold">{game.location ?? "—"}</p>
         </div>
       </div>
@@ -114,6 +116,17 @@ export default function GameDetailsPage() {
               game.chips_per_player > 0
                 ? (chips / game.chips_per_player) * game.buy_in
                 : 0;
+            const initialValue =
+              game.chips_per_player > 0
+                ? (player.initial_chips / game.chips_per_player) * game.buy_in
+                : 0;
+            const pnl = chipValue - initialValue;
+            const pnlClass =
+              pnl > 0
+                ? "text-success"
+                : pnl < 0
+                  ? "text-loss"
+                  : "text-amber-100";
 
             return (
               <div
@@ -127,13 +140,15 @@ export default function GameDetailsPage() {
               >
                 {/* Chip stack indicator */}
                 <div
-                  className="mb-1 flex h-12 w-14 flex-col items-center justify-center rounded-lg border border-amber-800/60 bg-amber-950/90 shadow-md"
+                  className="mb-1 flex flex-col items-center justify-center rounded-lg border border-amber-800/60 bg-amber-950/90 shadow-md p-1 px-2"
                   title={`${chips} fichas · ${formatCurrency(chipValue)}`}
                 >
                   <span className="text-[10px] text-amber-200/90">
                     {chips} f
                   </span>
-                  <span className="text-xs font-semibold text-amber-100">
+                  <span
+                    className={`text-xs font-semibold ${pnlClass}`}
+                  >
                     {formatCurrency(chipValue)}
                   </span>
                 </div>
@@ -165,10 +180,7 @@ export default function GameDetailsPage() {
 
       {!game.finished && (
         <div className="flex justify-center">
-          <Button
-            onClick={() => setFinalizeOpen(true)}
-            className="gap-2"
-          >
+          <Button onClick={() => setFinalizeOpen(true)} className="gap-2">
             <CheckCircle className="h-4 w-4" />
             Finalizar partida
           </Button>
