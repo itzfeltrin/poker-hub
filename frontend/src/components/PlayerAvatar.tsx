@@ -21,7 +21,7 @@ export function PlayerAvatar({
   return (
     <div
       className={cn(
-        "rounded-full bg-secondary flex items-center justify-center border border-border font-display",
+        "rounded-full bg-secondary flex items-center justify-center border border-border font-display shrink-0",
         sizes[size],
         className,
       )}

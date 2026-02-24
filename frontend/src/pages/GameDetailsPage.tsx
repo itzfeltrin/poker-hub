@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useGameQuery } from "@/models/games/hooks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+import { FinalizeGameDialog } from "@/components/FinalizeGameDialog";
 /** Position a seat around an ellipse. angle in radians, 0 = top. */
 function seatPosition(
   index: number,
@@ -22,6 +23,7 @@ function seatPosition(
 export default function GameDetailsPage() {
   const { gameId } = useParams({ from: "/games/$gameId" });
   const { data: game, isLoading, error } = useGameQuery(gameId);
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -160,6 +162,27 @@ export default function GameDetailsPage() {
           </>
         )}
       </div>
+
+      {!game.finished && (
+        <div className="flex justify-center">
+          <Button
+            onClick={() => setFinalizeOpen(true)}
+            className="gap-2"
+          >
+            <CheckCircle className="h-4 w-4" />
+            Finalizar partida
+          </Button>
+        </div>
+      )}
+
+      {!game.finished && gameId && (
+        <FinalizeGameDialog
+          open={finalizeOpen}
+          onOpenChange={setFinalizeOpen}
+          gameId={gameId}
+          game={game}
+        />
+      )}
     </div>
   );
 }
