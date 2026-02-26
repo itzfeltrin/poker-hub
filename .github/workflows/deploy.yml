@@ -18,10 +18,12 @@ jobs:
           script: |
             set -e
             export PATH="/home/ubuntu/.nvm/versions/node/v22.22.0/bin:$PATH"
+            export CI=1
+            export TURBO_UI=plain
             cd /home/ubuntu/Dev/poker-hub
             git pull origin main
             bun install --frozen-lockfile
-            # --no-daemon so turbo exits after build (avoids hang in SSH session)
+            # TURBO_UI=plain streams logs in GitHub UI; --no-daemon so turbo exits (avoids hang in SSH)
             bunx turbo run build --no-daemon
             cp -r frontend/dist backend/public
             sudo systemctl restart poker-hub
