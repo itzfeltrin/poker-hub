@@ -23,7 +23,7 @@ jobs:
             cd /home/ubuntu/Dev/poker-hub
             git pull origin main
             bun install --frozen-lockfile
-            # TURBO_UI=plain streams logs in GitHub UI; --no-daemon so turbo exits (avoids hang in SSH)
-            bunx turbo run build --no-daemon
+            # Build frontend directly (no Turbo) so the step always exits and never hangs
+            (cd frontend && bun run build)
             cp -r frontend/dist backend/public
             sudo systemctl restart poker-hub
