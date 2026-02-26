@@ -1,0 +1,18 @@
+---
+description: Shared types from packages/db and Remeda usage
+alwaysApply: true
+---
+
+# Shared Types and Remeda
+
+## Types from `packages/db`
+
+- **Always** use types and Zod schemas from `@poker-hub/db` (i.e. `packages/db`) for anything shared between frontend and backend. Do not redefine the same types or DTOs in frontend or backend.
+- **Zod is the single source of truth** for those types: define schemas in `packages/db`, then infer types with `z.infer<typeof SomeSchema>`. Use Zod for validation and transformations (e.g. adding defaults), not hand-written types.
+- Example: for a game payload, parse/transform with the schema so defaults are applied (e.g. `ApiGameSchema` with `.optional().default(crypto.randomUUID())` for `id` and `.optional().default(false)` for `finished`). Prefer `.parse()` or `.safeParse()` over manual object building.
+
+## Remeda
+
+- **Prefer Remeda** over raw loops and multiple intermediate variables. Use `R.pipe()` for linear transformations instead of declaring step-by-step variables.
+- Use Remeda helpers (`R.map`, `R.filter`, `R.groupBy`, `R.pick`, etc.) for list/object operations instead of manual `forEach` or redundant variables.
+- Example: `R.pipe(items, R.filter(pred), R.map(transform))` instead of `const filtered = items.filter(...); const result = filtered.map(...);`.
