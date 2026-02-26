@@ -10,7 +10,8 @@
     "typecheck": "turbo run typecheck --filter=backend --filter=frontend --filter=@poker-hub/db"
   },
   "devDependencies": {
-    "turbo": "^2.3.0"
+    "turbo": "^2.3.0",
+    "vite-plugin-pwa": "^1.2.0"
   },
   "workspaces": [
     "backend",
@@ -19,6 +20,7 @@
   ],
   "packageManager": "bun@1.2.0",
   "dependencies": {
+    "workbox-window": "^7.4.0",
     "zod": "^4.3.6"
   }
 }

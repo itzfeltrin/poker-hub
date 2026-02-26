@@ -16,7 +16,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-felt flex flex-col">
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
-        <div className="container flex items-center justify-between h-16">
+        <div className="container px-4 sm:px-8 flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo_transparent.png" alt="Logo" className="h-12" />
           </Link>

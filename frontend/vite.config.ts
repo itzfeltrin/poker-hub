@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
@@ -12,6 +13,23 @@ export default defineConfig(({ mode }) => ({
       autoCodeSplitting: true,
     }),
     react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["robots.txt"],
+      manifest: {
+        name: "Poker Hub",
+        short_name: "Poker Hub",
+        description: "Track poker games, players, and profit & loss",
+        theme_color: "#0f172a",
+        background_color: "#0f172a",
+        display: "standalone",
+        start_url: "/",
+        icons: [
+          { src: "/pwa-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/pwa-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+    }),
     mode === "development" && componentTagger(),
   ].filter(Boolean),
   server: {
