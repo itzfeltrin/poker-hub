@@ -19,7 +19,7 @@ import * as R from "remeda";
 import { useFinalizeGameMutation } from "@/models/games/hooks";
 
 type GamePlayer = {
-  playerId: string;
+  id: string;
   name: string;
   initialChips: number;
   finalChips: number | null;
@@ -89,7 +89,7 @@ export function FinalizeGameDialog({
     () =>
       R.pipe(
         game.players,
-        (players) => R.indexBy(players, (p) => p.playerId),
+        (players) => R.indexBy(players, (p) => p.id),
         (record) =>
           R.mapValues(record, (p) => p.finalChips ?? p.initialChips),
       ),
@@ -138,22 +138,22 @@ export function FinalizeGameDialog({
           <div className="grid gap-4 py-4">
             {game.players.map((player) => (
               <div className="flex flex-col gap-2 items-start">
-                <div key={player.playerId} className="flex items-center gap-4">
+                <div key={player.id} className="flex items-center gap-4">
                   <PlayerAvatar name={player.name} size="sm" />
                   <Label
-                    htmlFor={`chips-${player.playerId}`}
+                    htmlFor={`chips-${player.id}`}
                     className="min-w-24 shrink-0"
                   >
                     {player.name}
                   </Label>
                   <Input
-                    id={`chips-${player.playerId}`}
+                    id={`chips-${player.id}`}
                     type="number"
                     min={0}
                     step={1}
                     inputMode="numeric"
                     className="bg-card"
-                    {...register(`finalChips.${player.playerId}`, {
+                    {...register(`finalChips.${player.id}`, {
                       valueAsNumber: true,
                     })}
                   />
@@ -162,10 +162,10 @@ export function FinalizeGameDialog({
                     fichas
                   </span>
                 </div>
-                {typeof errors.finalChips?.[player.playerId]?.message ===
+                {typeof errors.finalChips?.[player.id]?.message ===
                   "string" && (
                   <p className="text-sm text-destructive">
-                    {errors.finalChips[player.playerId]?.message}
+                    {errors.finalChips[player.id]?.message}
                   </p>
                 )}
               </div>

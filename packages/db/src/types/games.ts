@@ -32,3 +32,8 @@ export const ApiGameWithPlayersSchema = ApiGameSchema.extend({
 }).omit({ playerIds: true });
 
 export type ApiGameWithPlayers = z.infer<typeof ApiGameWithPlayersSchema>;
+
+export const FinalizeGameBodySchema = z.object({
+  finalChips: z.record(z.uuid(), z.number().min(0)),
+});
+export type FinalizeGameBody = z.infer<typeof FinalizeGameBodySchema>;

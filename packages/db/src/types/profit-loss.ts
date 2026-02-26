@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const PeriodFilterSchema = z.enum([
+  "last_7_days",
+  "last_month",
+  "last_year",
+  "all_time",
+  "custom",
+]);
+export type PeriodFilter = z.infer<typeof PeriodFilterSchema>;
+
 export const ApiProfitLossPlayerSchema = z.object({
   id: z.uuid(),
   name: z.string(),

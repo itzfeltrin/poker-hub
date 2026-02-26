@@ -137,7 +137,7 @@ export default function GameDetailsPage() {
 
             return (
               <div
-                key={player.playerId}
+                key={player.id}
                 className="absolute flex flex-col items-center"
                 style={{
                   left: `${x}%`,
