@@ -17,4 +17,5 @@ jobs:
           script: |
             cd /home/ubuntu/Dev/poker-hub
             git pull origin main
+            bun install --frozen-lockfile
             sudo systemctl restart poker-hub
