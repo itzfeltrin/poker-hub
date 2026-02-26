@@ -49,7 +49,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 container py-8">
+      <main className="flex-1 container px-4 sm:px-8 py-8">
         <motion.div
           key={pathname}
           initial={{ opacity: 0, y: 8 }}
