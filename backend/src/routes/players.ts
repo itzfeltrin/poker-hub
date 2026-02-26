@@ -1,37 +1,47 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { players } from "@poker-hub/db";
+import { ApiPlayerSchema, players } from "@poker-hub/db";
+import z from "zod";
+import { eq } from "drizzle-orm";
 
 const app = new Hono();
 
 app.get("/", (c) => {
-  const rows = db
-    .select({ id: players.id, name: players.name })
-    .from(players)
-    .orderBy(players.name)
-    .all();
-  return c.json(rows.map((p) => ({ id: p.id, name: p.name })));
+  const rows = db.select().from(players).orderBy(players.name).all();
+
+  const apiPlayers = z.array(ApiPlayerSchema).safeParse(rows);
+  if (!apiPlayers.success) {
+    return c.json({ error: apiPlayers.error.issues[0]?.message }, 400);
+  }
+
+  return c.json(apiPlayers.data);
 });
 
 app.post("/", async (c) => {
-  const body = await c.req.json<{ name: string }>();
-  const name = body.name?.trim();
-  if (!name) {
-    return c.json({ error: "Name is required" }, 400);
+  const body = await c.req.json();
+
+  const apiPlayer = ApiPlayerSchema.safeParse(body);
+  if (!apiPlayer.success) {
+    return c.json({ error: apiPlayer.error.issues[0]?.message }, 400);
   }
-  const id = crypto.randomUUID();
-  db.insert(players).values({ id, name }).run();
-  const player = db.select().from(players).where(eq(players.id, id)).get();
-  if (!player) return c.json({ error: "Failed to create player" }, 500);
-  return c.json({ id: player.id, name: player.name }, 201);
+
+  db.insert(players).values(apiPlayer.data).run();
+
+  return c.json(apiPlayer.data, 201);
 });
 
 app.get("/:id", (c) => {
   const id = c.req.param("id");
-  const player = db.select().from(players).where(eq(players.id, id)).get();
-  if (!player) return c.json({ error: "Player not found" }, 404);
-  return c.json({ id: player.id, name: player.name });
+
+  const row = db.select().from(players).where(eq(players.id, id)).get();
+  if (!row) return c.json({ error: "Player not found" }, 404);
+
+  const apiPlayer = ApiPlayerSchema.safeParse(row);
+  if (!apiPlayer.success) {
+    return c.json({ error: apiPlayer.error.issues[0]?.message }, 400);
+  }
+
+  return c.json(apiPlayer.data);
 });
 
 export default app;

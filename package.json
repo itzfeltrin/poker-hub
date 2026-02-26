@@ -6,7 +6,8 @@
     "dev": "turbo run dev",
     "db:generate": "turbo run db:generate --filter=backend",
     "db:migrate": "turbo run db:migrate --filter=backend",
-    "db:studio": "turbo run db:studio --filter=backend"
+    "db:studio": "turbo run db:studio --filter=backend",
+    "typecheck": "turbo run typecheck --filter=backend --filter=frontend --filter=@poker-hub/db"
   },
   "devDependencies": {
     "turbo": "^2.3.0"
@@ -16,5 +17,8 @@
     "frontend",
     "packages/*"
   ],
-  "packageManager": "bun@1.2.0"
+  "packageManager": "bun@1.2.0",
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
 }

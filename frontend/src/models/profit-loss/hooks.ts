@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { ApiProfitLossResponse } from "@/models/profit-loss/types";
+import type { ApiProfitLoss } from "@poker-hub/db";
 
 const QUERY_KEYS = {
   profitLoss: (params: {
@@ -23,8 +23,6 @@ export function useProfitLossQuery(params?: {
   return useQuery({
     queryKey: QUERY_KEYS.profitLoss(params ?? {}),
     queryFn: () =>
-      api.get<ApiProfitLossResponse>(
-        "/profit-loss" + (query ? `?${query}` : ""),
-      ),
+      api.get<ApiProfitLoss>("/profit-loss" + (query ? `?${query}` : "")),
   });
 }

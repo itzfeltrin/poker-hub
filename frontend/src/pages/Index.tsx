@@ -3,7 +3,6 @@ import {
   useHistoryQuery,
   useProfitLossQuery,
 } from "@/api/hooks";
-import { apiGameToGame } from "@/utils/game";
 import { getPlayerPnL, getPlayerById } from "@/utils/player";
 import { StatCard } from "@/components/StatCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -109,7 +108,7 @@ const Index = () => {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 {game.players.map((gp) => {
-                  const player = getPlayerById(players, gp.playerId);
+                  const player = getPlayerById(players, gp.id);
                   if (!player) return null;
                   const cashOut =
                     gp.finalChips != null
@@ -117,7 +116,7 @@ const Index = () => {
                       : 0;
                   const pnl = cashOut - game.buyIn;
                   return (
-                    <div key={gp.playerId} className="flex items-center gap-2">
+                    <div key={gp.id} className="flex items-center gap-2">
                       <PlayerAvatar name={player.name} size="sm" />
                       <div className="text-sm">
                         <span className="text-foreground">{player.name}</span>{" "}

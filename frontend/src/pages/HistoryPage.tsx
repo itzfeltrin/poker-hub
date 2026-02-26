@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { useHistoryQuery, usePlayersQuery } from "@/api/hooks";
-import { apiGameToGame } from "@/utils/game";
 import { getPlayerById } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
@@ -65,17 +64,16 @@ export default function HistoryPage() {
                     </thead>
                     <tbody>
                       {game.players.map((gp) => {
-                        const player = getPlayerById(players, gp.playerId);
+                        const player = getPlayerById(players, gp.id);
                         if (!player) return null;
-                        const pricePerChip =
-                          game.buyIn / game.chipsPerPlayer;
+                        const pricePerChip = game.buyIn / game.chipsPerPlayer;
                         const initialPrice = gp.initialChips * pricePerChip;
                         const finalChips = gp.finalChips ?? gp.initialChips;
                         const finalPrice = finalChips * pricePerChip;
                         const pnl = finalPrice - initialPrice;
                         return (
                           <tr
-                            key={gp.playerId}
+                            key={gp.id}
                             className="border-b border-border/50 last:border-0"
                           >
                             <td className="py-2.5">

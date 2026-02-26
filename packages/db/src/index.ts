@@ -1,11 +1,4 @@
-export { gamePlayers, games, players } from "./schema";
-
-export type {
-  ApiGame,
-  ApiGameCreate,
-  ApiGameFinalize,
-  ApiGamePlayer,
-  ApiGameWithPlayers,
-} from "./api-types/games";
-
-export type { ApiPlayer, ApiPlayerCreate } from "./api-types/players";
+export * from "./schema";
+export * from "./types/games";
+export * from "./types/players";
+export * from "./types/profit-loss";

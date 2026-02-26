@@ -1,45 +1,26 @@
 import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { games, gamePlayers, players, type ApiGameCreate } from "@poker-hub/db";
+import { games, gamePlayers, players, ApiGameSchema } from "@poker-hub/db";
 import type { GameWithPlayers } from "../types";
 
 const app = new Hono();
 
 app.post("/", async (c) => {
-  const body = await c.req.json<ApiGameCreate>();
-  const { buyIn, chipsPerPlayer, playerIds } = body;
+  const body = await c.req.json();
 
-  if (typeof buyIn !== "number" || buyIn <= 0) {
-    return c.json({ error: "buyIn must be a positive number" }, 400);
-  }
-  if (typeof chipsPerPlayer !== "number" || chipsPerPlayer <= 0) {
-    return c.json({ error: "chipsPerPlayer must be a positive number" }, 400);
-  }
-  if (!Array.isArray(playerIds) || playerIds.length === 0) {
-    return c.json(
-      { error: "playerIds must be a non-empty array of player IDs" },
-      400,
-    );
+  const apiGame = ApiGameSchema.safeParse(body);
+  if (!apiGame.success) {
+    return c.json({ error: apiGame.error.issues[0]?.message }, 400);
   }
 
-  const id = crypto.randomUUID();
+  db.insert(games).values(apiGame.data).run();
 
-  db.insert(games)
-    .values({
-      id,
-      date: body.date,
-      location: body.location,
-      buyIn,
-      chipsPerPlayer,
-      finished: false,
-    })
-    .run();
-
-  for (const playerId of playerIds) {
+  for (const playerId of apiGame.data.playerIds) {
+    const { id: gameId, chipsPerPlayer } = apiGame.data;
     db.insert(gamePlayers)
       .values({
-        gameId: id,
+        gameId,
         playerId,
         initialChips: chipsPerPlayer,
         finalChips: null,
@@ -47,9 +28,7 @@ app.post("/", async (c) => {
       .run();
   }
 
-  const game = getGameWithPlayers(id);
-  if (!game) return c.json({ error: "Failed to create game" }, 500);
-  return c.json(toGameResponse(game), 201);
+  return c.json(apiGame.data, 201);
 });
 
 app.get("/:id", (c) => {
