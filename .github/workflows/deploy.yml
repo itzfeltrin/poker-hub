@@ -14,13 +14,14 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ubuntu
           key: ${{ secrets.VM_SSH_KEY }}
+          command_timeout: 15m
           script: |
             set -e
             export PATH="/home/ubuntu/.nvm/versions/node/v22.22.0/bin:$PATH"
             cd /home/ubuntu/Dev/poker-hub
             git pull origin main
             bun install --frozen-lockfile
-            # Build frontend (includes PWA manifest + service worker) and serve from backend
-            bun run build
+            # --no-daemon so turbo exits after build (avoids hang in SSH session)
+            bunx turbo run build --no-daemon
             cp -r frontend/dist backend/public
             sudo systemctl restart poker-hub
