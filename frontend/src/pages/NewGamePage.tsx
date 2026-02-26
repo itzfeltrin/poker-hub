@@ -97,9 +97,9 @@ export default function NewGamePage() {
 
     try {
       await createGameMut.mutateAsync({
-        buy_in: data.buyIn,
-        chips_per_player: data.chipsPerPlayer,
-        player_ids: players.map((p) => p.playerId),
+        buyIn: data.buyIn,
+        chipsPerPlayer: data.chipsPerPlayer,
+        playerIds: players.map((p) => p.playerId),
         location: data.location,
         date: data.date,
       });

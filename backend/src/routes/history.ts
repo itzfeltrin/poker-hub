@@ -1,21 +1,20 @@
 import { Hono } from "hono";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
-import { games, gamePlayers, players } from "@poker-hub/db/schema";
-import type { ApiGame } from "@poker-hub/db";
+import { gamePlayers, games, players } from "@poker-hub/db";
 
 const app = new Hono();
 
 app.get("/", (c) => {
   const gameRows = db.select().from(games).orderBy(desc(games.date)).all();
 
-  const result: ApiGame[] = gameRows.map((g) => {
+  const result = gameRows.map((g) => {
     const playerRows = db
       .select({
-        player_id: gamePlayers.playerId,
+        playerId: gamePlayers.playerId,
         name: players.name,
-        initial_chips: gamePlayers.initialChips,
-        final_chips: gamePlayers.finalChips,
+        initialChips: gamePlayers.initialChips,
+        finalChips: gamePlayers.finalChips,
       })
       .from(gamePlayers)
       .innerJoin(players, eq(players.id, gamePlayers.playerId))
@@ -25,8 +24,8 @@ app.get("/", (c) => {
     return {
       id: g.id,
       date: g.date,
-      buy_in: g.buyIn,
-      chips_per_player: g.chipsPerPlayer,
+      buyIn: g.buyIn,
+      chipsPerPlayer: g.chipsPerPlayer,
       finished: g.finished,
       players: playerRows,
       location: g.location,
@@ -37,15 +36,15 @@ app.get("/", (c) => {
     result.map((g) => ({
       id: g.id,
       date: g.date,
-      buy_in: g.buy_in,
-      chips_per_player: g.chips_per_player,
+      buyIn: g.buyIn,
+      chipsPerPlayer: g.chipsPerPlayer,
       finished: g.finished,
       location: g.location,
       players: g.players.map((p) => ({
-        player_id: p.player_id,
+        playerId: p.playerId,
         name: p.name,
-        initial_chips: p.initial_chips,
-        final_chips: p.final_chips,
+        initialChips: p.initialChips,
+        finalChips: p.finalChips,
       })),
     })),
   );

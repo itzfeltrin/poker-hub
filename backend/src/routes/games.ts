@@ -1,25 +1,24 @@
 import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { games, gamePlayers, players } from "@poker-hub/db/schema";
+import { games, gamePlayers, players, type ApiGameCreate } from "@poker-hub/db";
 import type { GameWithPlayers } from "../types";
-import type { ApiGameCreate } from "@poker-hub/db";
 
 const app = new Hono();
 
 app.post("/", async (c) => {
   const body = await c.req.json<ApiGameCreate>();
-  const { buy_in, chips_per_player, player_ids } = body;
+  const { buyIn, chipsPerPlayer, playerIds } = body;
 
-  if (typeof buy_in !== "number" || buy_in <= 0) {
-    return c.json({ error: "buy_in must be a positive number" }, 400);
+  if (typeof buyIn !== "number" || buyIn <= 0) {
+    return c.json({ error: "buyIn must be a positive number" }, 400);
   }
-  if (typeof chips_per_player !== "number" || chips_per_player <= 0) {
-    return c.json({ error: "chips_per_player must be a positive number" }, 400);
+  if (typeof chipsPerPlayer !== "number" || chipsPerPlayer <= 0) {
+    return c.json({ error: "chipsPerPlayer must be a positive number" }, 400);
   }
-  if (!Array.isArray(player_ids) || player_ids.length === 0) {
+  if (!Array.isArray(playerIds) || playerIds.length === 0) {
     return c.json(
-      { error: "player_ids must be a non-empty array of player IDs" },
+      { error: "playerIds must be a non-empty array of player IDs" },
       400,
     );
   }
@@ -31,18 +30,18 @@ app.post("/", async (c) => {
       id,
       date: body.date,
       location: body.location,
-      buyIn: buy_in,
-      chipsPerPlayer: chips_per_player,
+      buyIn,
+      chipsPerPlayer,
       finished: false,
     })
     .run();
 
-  for (const playerId of player_ids) {
+  for (const playerId of playerIds) {
     db.insert(gamePlayers)
       .values({
         gameId: id,
         playerId,
-        initialChips: chips_per_player,
+        initialChips: chipsPerPlayer,
         finalChips: null,
       })
       .run();
@@ -61,7 +60,7 @@ app.get("/:id", (c) => {
 });
 
 type FinalizeGameBody = {
-  final_chips: Record<string, number>;
+  finalChips: Record<string, number>;
 };
 
 app.patch("/:id/finalize", async (c) => {
@@ -76,10 +75,10 @@ app.patch("/:id/finalize", async (c) => {
     return c.json({ error: "Game is already finalized" }, 400);
 
   const body = await c.req.json<FinalizeGameBody>();
-  const finalChips = body.final_chips;
+  const finalChips = body.finalChips;
   if (!finalChips || typeof finalChips !== "object") {
     return c.json(
-      { error: "final_chips must be an object { player_id: chips }" },
+      { error: "finalChips must be an object { playerId: chips }" },
       400,
     );
   }
@@ -95,7 +94,7 @@ app.patch("/:id/finalize", async (c) => {
     if (typeof chips !== "number" || chips < 0) {
       return c.json(
         {
-          error: `Invalid final_chips for player ${playerId}. Must be a number >= 0`,
+          error: `Invalid finalChips for player ${playerId}. Must be a number >= 0`,
         },
         400,
       );
@@ -120,10 +119,10 @@ function getGameWithPlayers(gameId: string): GameWithPlayers | null {
 
   const playerRows = db
     .select({
-      player_id: gamePlayers.playerId,
+      playerId: gamePlayers.playerId,
       name: players.name,
-      initial_chips: gamePlayers.initialChips,
-      final_chips: gamePlayers.finalChips,
+      initialChips: gamePlayers.initialChips,
+      finalChips: gamePlayers.finalChips,
     })
     .from(gamePlayers)
     .innerJoin(players, eq(players.id, gamePlayers.playerId))
@@ -133,8 +132,8 @@ function getGameWithPlayers(gameId: string): GameWithPlayers | null {
   return {
     id: gameRow.id,
     date: gameRow.date,
-    buy_in: gameRow.buyIn,
-    chips_per_player: gameRow.chipsPerPlayer,
+    buyIn: gameRow.buyIn,
+    chipsPerPlayer: gameRow.chipsPerPlayer,
     location: gameRow.location,
     finished: gameRow.finished,
     players: playerRows,
@@ -145,15 +144,15 @@ function toGameResponse(g: GameWithPlayers) {
   return {
     id: g.id,
     date: g.date,
-    buy_in: g.buy_in,
-    chips_per_player: g.chips_per_player,
+    buyIn: g.buyIn,
+    chipsPerPlayer: g.chipsPerPlayer,
     location: g.location,
     finished: g.finished,
     players: g.players.map((p) => ({
-      player_id: p.player_id,
+      playerId: p.playerId,
       name: p.name,
-      initial_chips: p.initial_chips,
-      final_chips: p.final_chips,
+      initialChips: p.initialChips,
+      finalChips: p.finalChips,
     })),
   };
 }

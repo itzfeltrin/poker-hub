@@ -6,8 +6,8 @@ export function getPlayerPnL(
   playerId: string
 ): number {
   if (!profitLoss?.players) return 0;
-  const p = profitLoss.players.find((x) => x.player_id === playerId);
-  return p?.profit_loss ?? 0;
+  const p = profitLoss.players.find((x) => x.playerId === playerId);
+  return p?.profitLoss ?? 0;
 }
 
 /** Count how many games a player participated in. */
@@ -16,7 +16,7 @@ export function getPlayerGamesCount(
   playerId: string
 ): number {
   if (!games) return 0;
-  return games.filter((g) => g.players.some((p) => p.player_id === playerId)).length;
+  return games.filter((g) => g.players.some((p) => p.playerId === playerId)).length;
 }
 
 /** Find a player by id in a list. */

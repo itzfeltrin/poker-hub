@@ -29,7 +29,7 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           {sorted.map((game) => {
-            const totalPot = game.buy_in * game.players.length;
+            const totalPot = game.buyIn * game.players.length;
             return (
               <Link
                 key={game.id}
@@ -65,16 +65,17 @@ export default function HistoryPage() {
                     </thead>
                     <tbody>
                       {game.players.map((gp) => {
-                        const player = getPlayerById(players, gp.player_id);
+                        const player = getPlayerById(players, gp.playerId);
                         if (!player) return null;
                         const pricePerChip =
-                          game.buy_in / game.chips_per_player;
-                        const initialPrice = gp.initial_chips * pricePerChip;
-                        const finalPrice = gp.final_chips * pricePerChip;
+                          game.buyIn / game.chipsPerPlayer;
+                        const initialPrice = gp.initialChips * pricePerChip;
+                        const finalChips = gp.finalChips ?? gp.initialChips;
+                        const finalPrice = finalChips * pricePerChip;
                         const pnl = finalPrice - initialPrice;
                         return (
                           <tr
-                            key={gp.player_id}
+                            key={gp.playerId}
                             className="border-b border-border/50 last:border-0"
                           >
                             <td className="py-2.5">

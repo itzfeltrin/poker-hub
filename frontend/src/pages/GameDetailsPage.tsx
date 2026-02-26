@@ -47,7 +47,7 @@ export default function GameDetailsPage() {
     );
   }
 
-  const totalPot = game.buy_in * game.players.length;
+  const totalPot = game.buyIn * game.players.length;
   const radiusX = 42;
   const radiusY = 38;
 
@@ -116,16 +116,16 @@ export default function GameDetailsPage() {
               radiusY,
             );
             const chips =
-              player.final_chips != null
-                ? player.final_chips
-                : player.initial_chips;
+              player.finalChips != null
+                ? player.finalChips
+                : player.initialChips;
             const chipValue =
-              game.chips_per_player > 0
-                ? (chips / game.chips_per_player) * game.buy_in
+              game.chipsPerPlayer > 0
+                ? (chips / game.chipsPerPlayer) * game.buyIn
                 : 0;
             const initialValue =
-              game.chips_per_player > 0
-                ? (player.initial_chips / game.chips_per_player) * game.buy_in
+              game.chipsPerPlayer > 0
+                ? (player.initialChips / game.chipsPerPlayer) * game.buyIn
                 : 0;
             const pnl = chipValue - initialValue;
             const pnlClass =
@@ -137,7 +137,7 @@ export default function GameDetailsPage() {
 
             return (
               <div
-                key={player.player_id}
+                key={player.playerId}
                 className="absolute flex flex-col items-center"
                 style={{
                   left: `${x}%`,
@@ -178,9 +178,9 @@ export default function GameDetailsPage() {
 
       {/* Summary below table */}
       <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground md:gap-4 md:text-sm">
-        <span>Buy-in: {formatCurrency(game.buy_in)}</span>
+        <span>Buy-in: {formatCurrency(game.buyIn)}</span>
         <span>·</span>
-        <span>{game.chips_per_player} fichas/jogador</span>
+        <span>{game.chipsPerPlayer} fichas/jogador</span>
         {game.finished && (
           <>
             <span>·</span>

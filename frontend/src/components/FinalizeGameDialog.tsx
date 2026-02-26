@@ -19,28 +19,28 @@ import * as R from "remeda";
 import { useFinalizeGameMutation } from "@/models/games/hooks";
 
 type GamePlayer = {
-  player_id: string;
+  playerId: string;
   name: string;
-  initial_chips: number;
-  final_chips: number | null;
+  initialChips: number;
+  finalChips: number | null;
 };
 
 type GameForFinalize = {
   id: string;
-  buy_in: number;
-  chips_per_player: number;
+  buyIn: number;
+  chipsPerPlayer: number;
   finished: boolean;
   players: GamePlayer[];
 };
 
 type FinalizeFormData = {
-  final_chips: Record<string, number>;
+  finalChips: Record<string, number>;
 };
 
 function makeFinalizeSchema(initialChipsTotal: number) {
   return z
     .object({
-      final_chips: z.record(
+      finalChips: z.record(
         z.string(),
         z.coerce
           .number()
@@ -50,12 +50,12 @@ function makeFinalizeSchema(initialChipsTotal: number) {
     })
     .refine(
       (data) =>
-        Object.values(data.final_chips).reduce((a, b) => a + b, 0) ===
+        Object.values(data.finalChips).reduce((a, b) => a + b, 0) ===
         initialChipsTotal,
       {
         message:
           "A soma das fichas finais deve ser igual à soma das fichas iniciais.",
-        path: ["final_chips"],
+        path: ["finalChips"],
       },
     );
 }
@@ -76,7 +76,7 @@ export function FinalizeGameDialog({
   const finalizeMut = useFinalizeGameMutation();
 
   const totalInitialChips = useMemo(
-    () => game.players.reduce((s, p) => s + p.initial_chips, 0),
+    () => game.players.reduce((s, p) => s + p.initialChips, 0),
     [game.players],
   );
 
@@ -89,9 +89,9 @@ export function FinalizeGameDialog({
     () =>
       R.pipe(
         game.players,
-        (players) => R.indexBy(players, (p) => p.player_id),
+        (players) => R.indexBy(players, (p) => p.playerId),
         (record) =>
-          R.mapValues(record, (p) => p.final_chips ?? p.initial_chips),
+          R.mapValues(record, (p) => p.finalChips ?? p.initialChips),
       ),
     [game.players],
   );
@@ -101,7 +101,7 @@ export function FinalizeGameDialog({
     handleSubmit,
     formState: { errors },
   } = useForm<FinalizeFormData>({
-    defaultValues: { final_chips: defaultFinalChips },
+    defaultValues: { finalChips: defaultFinalChips },
     resolver: zodResolver(finalizeSchema),
     mode: "onChange",
   });
@@ -110,7 +110,7 @@ export function FinalizeGameDialog({
     try {
       await finalizeMut.mutateAsync({
         gameId,
-        body: { final_chips: data.final_chips },
+        body: { finalChips: data.finalChips },
       });
       toast.success("Partida finalizada!");
       onOpenChange(false);
@@ -130,30 +130,30 @@ export function FinalizeGameDialog({
               partida. A soma deve ser {totalInitialChips} fichas.
             </DialogDescription>
           </DialogHeader>
-          {typeof errors.final_chips?.root?.message === "string" && (
+          {typeof errors.finalChips?.root?.message === "string" && (
             <p className="text-sm text-destructive text-center my-2">
-              {errors.final_chips.root.message}
+              {errors.finalChips.root.message}
             </p>
           )}
           <div className="grid gap-4 py-4">
             {game.players.map((player) => (
               <div className="flex flex-col gap-2 items-start">
-                <div key={player.player_id} className="flex items-center gap-4">
+                <div key={player.playerId} className="flex items-center gap-4">
                   <PlayerAvatar name={player.name} size="sm" />
                   <Label
-                    htmlFor={`chips-${player.player_id}`}
+                    htmlFor={`chips-${player.playerId}`}
                     className="min-w-24 shrink-0"
                   >
                     {player.name}
                   </Label>
                   <Input
-                    id={`chips-${player.player_id}`}
+                    id={`chips-${player.playerId}`}
                     type="number"
                     min={0}
                     step={1}
                     inputMode="numeric"
                     className="bg-card"
-                    {...register(`final_chips.${player.player_id}`, {
+                    {...register(`finalChips.${player.playerId}`, {
                       valueAsNumber: true,
                     })}
                   />
@@ -162,10 +162,10 @@ export function FinalizeGameDialog({
                     fichas
                   </span>
                 </div>
-                {typeof errors.final_chips?.[player.player_id]?.message ===
+                {typeof errors.finalChips?.[player.playerId]?.message ===
                   "string" && (
                   <p className="text-sm text-destructive">
-                    {errors.final_chips[player.player_id]?.message}
+                    {errors.finalChips[player.playerId]?.message}
                   </p>
                 )}
               </div>

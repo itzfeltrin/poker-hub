@@ -1,4 +1,4 @@
-import type { ApiGame, ApiGamePlayer } from "@/api/types";
+import type { ApiGameWithPlayers } from "@/api/types";
 
 /** UI shape for a game player (used in history, new game form). */
 export interface GamePlayer {
@@ -11,23 +11,26 @@ export interface GamePlayer {
 export interface Game {
   id: string;
   date: string;
-  location: string;
+  location: string | null;
   players: GamePlayer[];
   notes?: string;
 }
 
-/** Convert API game to UI game (cashOut from final_chips/chips_per_player*buy_in). */
-export function apiGameToGame(g: ApiGame, locationPlaceholder = "—"): Game {
+/** Convert API game to UI game (cashOut from finalChips/chipsPerPlayer*buyIn). */
+export function apiGameToGame(
+  g: ApiGameWithPlayers,
+  _locationPlaceholder = "—",
+): Game {
   return {
     id: g.id,
     date: g.date,
-    location: locationPlaceholder,
-    players: g.players.map((p: ApiGamePlayer) => ({
-      playerId: p.player_id,
-      buyIn: g.buy_in,
+    location: g.location,
+    players: g.players.map((p) => ({
+      playerId: p.playerId,
+      buyIn: g.buyIn,
       cashOut:
-        p.final_chips != null
-          ? (p.final_chips / g.chips_per_player) * g.buy_in
+        p.finalChips != null
+          ? (p.finalChips / g.chipsPerPlayer) * g.buyIn
           : 0,
     })),
   };

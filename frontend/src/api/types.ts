@@ -4,6 +4,7 @@ export type { ApiPlayer } from "@/models/players/types";
 export type {
   ApiGame,
   ApiGamePlayer,
+  ApiGameWithPlayers,
 } from "@/models/games/types";
 export type {
   ApiProfitLossPlayer,

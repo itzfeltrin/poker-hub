@@ -3,9 +3,20 @@ import type { GameRow } from "../schema";
 export type ApiGame = GameRow;
 
 export type ApiGameCreate = Omit<GameRow, "id"> & {
-  player_ids: string[];
+  playerIds: string[];
 };
 
 export type ApiGameFinalize = {
-  final_chips: Record<string, number>;
+  finalChips: Record<string, number>;
+};
+
+export type ApiGamePlayer = {
+  playerId: string;
+  name: string;
+  initialChips: number;
+  finalChips: number | null;
+};
+
+export type ApiGameWithPlayers = ApiGame & {
+  players: ApiGamePlayer[];
 };

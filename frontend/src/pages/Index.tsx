@@ -17,10 +17,10 @@ const Index = () => {
   const { data: historyGames } = useHistoryQuery();
   const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
 
-  const games = (historyGames ?? []).map((g) => apiGameToGame(g));
+  const games = historyGames ?? [];
 
   const totalPot = games.reduce(
-    (sum, g) => sum + g.players.reduce((s, p) => s + p.buyIn, 0),
+    (sum, g) => sum + g.buyIn * g.players.length,
     0,
   );
 
@@ -111,7 +111,11 @@ const Index = () => {
                 {game.players.map((gp) => {
                   const player = getPlayerById(players, gp.playerId);
                   if (!player) return null;
-                  const pnl = gp.cashOut - gp.buyIn;
+                  const cashOut =
+                    gp.finalChips != null
+                      ? (gp.finalChips / game.chipsPerPlayer) * game.buyIn
+                      : 0;
+                  const pnl = cashOut - game.buyIn;
                   return (
                     <div key={gp.playerId} className="flex items-center gap-2">
                       <PlayerAvatar name={player.name} size="sm" />

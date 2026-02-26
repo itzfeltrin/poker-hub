@@ -2,9 +2,8 @@ import { Hono } from "hono";
 import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { pipe } from "remeda";
 import { db } from "../db";
-import { games, gamePlayers, players } from "@poker-hub/db/schema";
-import type { ProfitLoss } from "../types";
-import { PeriodFilter } from "../types";
+import { games, gamePlayers, players } from "@poker-hub/db";
+import { type ProfitLoss, PeriodFilter } from "../types";
 
 const app = new Hono();
 
@@ -64,10 +63,13 @@ app.get("/", (c) => {
       period,
       startDate: getStartDate(
         period,
-        c.req.query("start_date"),
-        c.req.query("end_date"),
+        c.req.query("startDate") ?? c.req.query("start_date"),
+        c.req.query("endDate") ?? c.req.query("end_date"),
       ),
-      endDate: getEndDate(period, c.req.query("end_date")),
+      endDate: getEndDate(
+        period,
+        c.req.query("endDate") ?? c.req.query("end_date"),
+      ),
     }),
   );
 
@@ -105,15 +107,15 @@ app.get("/", (c) => {
 
   const byPlayer = new Map<
     string,
-    { name: string; total_in: number; total_out: number }
+    { name: string; totalIn: number; totalOut: number }
   >();
 
   for (const game of gameRows) {
     const participants = db
       .select({
-        player_id: gamePlayers.playerId,
+        playerId: gamePlayers.playerId,
         name: players.name,
-        final_chips: gamePlayers.finalChips,
+        finalChips: gamePlayers.finalChips,
       })
       .from(gamePlayers)
       .innerJoin(players, eq(players.id, gamePlayers.playerId))
@@ -123,7 +125,7 @@ app.get("/", (c) => {
       .all();
 
     const totalChips = participants.reduce(
-      (s, p) => s + (p.final_chips ?? 0),
+      (s, p) => s + (p.finalChips ?? 0),
       0,
     );
     if (totalChips === 0) continue;
@@ -132,35 +134,35 @@ app.get("/", (c) => {
     const totalPool = game.buyIn * numPlayers;
 
     for (const p of participants) {
-      const payout = ((p.final_chips ?? 0) / totalChips) * totalPool;
-      const entry = byPlayer.get(p.player_id);
+      const payout = ((p.finalChips ?? 0) / totalChips) * totalPool;
+      const entry = byPlayer.get(p.playerId);
       const name = entry?.name ?? p.name;
-      const total_in = (entry?.total_in ?? 0) + game.buyIn;
-      const total_out = (entry?.total_out ?? 0) + payout;
-      byPlayer.set(p.player_id, { name, total_in, total_out });
+      const totalIn = (entry?.totalIn ?? 0) + game.buyIn;
+      const totalOut = (entry?.totalOut ?? 0) + payout;
+      byPlayer.set(p.playerId, { name, totalIn, totalOut });
     }
   }
 
   const result: ProfitLoss[] = Array.from(byPlayer.entries()).map(
-    ([player_id, { name, total_in, total_out }]) => ({
-      player_id,
+    ([playerId, { name, totalIn, totalOut }]) => ({
+      playerId,
       name,
-      total_in,
-      total_out,
-      profit_loss: total_out - total_in,
+      totalIn,
+      totalOut,
+      profitLoss: totalOut - totalIn,
     }),
   );
 
   return c.json({
     period,
-    start_date: startDate ?? undefined,
-    end_date: endDate ?? undefined,
+    startDate: startDate ?? undefined,
+    endDate: endDate ?? undefined,
     players: result.map((r) => ({
-      player_id: r.player_id,
+      playerId: r.playerId,
       name: r.name,
-      total_buy_in: r.total_in,
-      total_cash_out: r.total_out,
-      profit_loss: r.profit_loss,
+      totalBuyIn: r.totalIn,
+      totalCashOut: r.totalOut,
+      profitLoss: r.profitLoss,
     })),
   });
 });

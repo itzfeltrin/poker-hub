@@ -6,34 +6,34 @@ export type Player = {
 export type Game = {
   id: string;
   date: string;
-  buy_in: number;
-  chips_per_player: number;
+  buyIn: number;
+  chipsPerPlayer: number;
   location: string | null;
   finished: boolean;
 };
 
 export type GamePlayer = {
-  game_id: string;
-  player_id: string;
-  initial_chips: number;
-  final_chips: number | null;
+  gameId: string;
+  playerId: string;
+  initialChips: number;
+  finalChips: number | null;
 };
 
 export type GameWithPlayers = Game & {
   players: Array<{
-    player_id: string;
+    playerId: string;
     name: string;
-    initial_chips: number;
-    final_chips: number | null;
+    initialChips: number;
+    finalChips: number | null;
   }>;
 };
 
 export type ProfitLoss = {
-  player_id: string;
+  playerId: string;
   name: string;
-  total_in: number;
-  total_out: number;
-  profit_loss: number;
+  totalIn: number;
+  totalOut: number;
+  profitLoss: number;
 };
 
 export enum PeriodFilter {
