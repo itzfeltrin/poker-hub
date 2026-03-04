@@ -13,10 +13,8 @@ import { formatPnl, formatCurrency, formatDate } from "@/lib/utils";
 
 const Index = () => {
   const { data: players = [] } = usePlayersQuery();
-  const { data: historyGames } = useHistoryQuery();
+  const { data: games = [] } = useHistoryQuery();
   const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
-
-  const games = historyGames ?? [];
 
   const totalPot = games.reduce((sum, g) => {
     const totalInitialChips = g.players.reduce(
