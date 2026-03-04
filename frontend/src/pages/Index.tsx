@@ -115,11 +115,8 @@ const Index = () => {
                 {game.players.map((gp) => {
                   const player = getPlayerById(players, gp.id);
                   if (!player) return null;
-                  const cashOut =
-                    gp.cashOut != null
-                      ? (gp.cashOut / game.chipsPerPlayer) * game.buyIn
-                      : 0;
-                  const pnl = cashOut - game.buyIn;
+                  const chipProfit = (gp.cashOut ?? 0) - gp.initialChips;
+                  const pnl = chipProfit * (game.buyIn / game.chipsPerPlayer);
                   return (
                     <div key={gp.id} className="flex items-center gap-2">
                       <PlayerAvatar name={player.name} size="sm" />
@@ -127,9 +124,11 @@ const Index = () => {
                         <span className="text-foreground">{player.name}</span>{" "}
                         <span
                           className={
-                            pnl >= 0
-                              ? "text-success font-medium"
-                              : "text-loss font-medium"
+                            gp.cashOut === null
+                              ? "text-muted-foreground"
+                              : pnl >= 0
+                                ? "text-success font-medium"
+                                : "text-loss font-medium"
                           }
                         >
                           {formatPnl(pnl)}
