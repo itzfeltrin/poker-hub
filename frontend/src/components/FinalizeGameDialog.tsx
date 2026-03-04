@@ -22,7 +22,7 @@ type GamePlayer = {
   id: string;
   name: string;
   initialChips: number;
-  finalChips: number | null;
+  cashOut: number | null;
 };
 
 type GameForFinalize = {
@@ -34,13 +34,13 @@ type GameForFinalize = {
 };
 
 type FinalizeFormData = {
-  finalChips: Record<string, number>;
+  cashOut: Record<string, number>;
 };
 
 function makeFinalizeSchema(initialChipsTotal: number) {
   return z
     .object({
-      finalChips: z.record(
+      cashOut: z.record(
         z.string(),
         z.coerce
           .number()
@@ -50,12 +50,12 @@ function makeFinalizeSchema(initialChipsTotal: number) {
     })
     .refine(
       (data) =>
-        Object.values(data.finalChips).reduce((a, b) => a + b, 0) ===
+        Object.values(data.cashOut).reduce((a, b) => a + b, 0) ===
         initialChipsTotal,
       {
         message:
           "A soma das fichas finais deve ser igual à soma das fichas iniciais.",
-        path: ["finalChips"],
+        path: ["cashOut"],
       },
     );
 }
@@ -91,7 +91,7 @@ export function FinalizeGameDialog({
         game.players,
         (players) => R.indexBy(players, (p) => p.id),
         (record) =>
-          R.mapValues(record, (p) => p.finalChips ?? p.initialChips),
+          R.mapValues(record, (p) => p.cashOut ?? p.initialChips),
       ),
     [game.players],
   );
@@ -101,7 +101,7 @@ export function FinalizeGameDialog({
     handleSubmit,
     formState: { errors },
   } = useForm<FinalizeFormData>({
-    defaultValues: { finalChips: defaultFinalChips },
+    defaultValues: { cashOut: defaultFinalChips },
     resolver: zodResolver(finalizeSchema),
     mode: "onChange",
   });
@@ -110,7 +110,7 @@ export function FinalizeGameDialog({
     try {
       await finalizeMut.mutateAsync({
         gameId,
-        body: { finalChips: data.finalChips },
+        body: { cashOut: data.cashOut },
       });
       toast.success("Partida finalizada!");
       onOpenChange(false);
@@ -130,9 +130,9 @@ export function FinalizeGameDialog({
               partida. A soma deve ser {totalInitialChips} fichas.
             </DialogDescription>
           </DialogHeader>
-          {typeof errors.finalChips?.root?.message === "string" && (
+          {typeof errors.cashOut?.root?.message === "string" && (
             <p className="text-sm text-destructive text-center my-2">
-              {errors.finalChips.root.message}
+              {errors.cashOut.root.message}
             </p>
           )}
           <div className="grid gap-4 py-4">
@@ -153,7 +153,7 @@ export function FinalizeGameDialog({
                     step={1}
                     inputMode="numeric"
                     className="bg-card"
-                    {...register(`finalChips.${player.id}`, {
+                    {...register(`cashOut.${player.id}`, {
                       valueAsNumber: true,
                     })}
                   />
@@ -162,10 +162,10 @@ export function FinalizeGameDialog({
                     fichas
                   </span>
                 </div>
-                {typeof errors.finalChips?.[player.id]?.message ===
+                {typeof errors.cashOut?.[player.id]?.message ===
                   "string" && (
                   <p className="text-sm text-destructive">
-                    {errors.finalChips[player.id]?.message}
+                    {errors.cashOut[player.id]?.message}
                   </p>
                 )}
               </div>

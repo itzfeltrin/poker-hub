@@ -29,8 +29,7 @@ export const gamePlayers = sqliteTable(
     playerId: text("player_id")
       .notNull()
       .references(() => players.id),
-    initialChips: integer("initial_chips").notNull(),
-    finalChips: integer("final_chips"),
+    cashOut: integer("cash_out"),
   },
   (t) => [primaryKey({ columns: [t.gameId, t.playerId] })],
 );

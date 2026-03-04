@@ -28,7 +28,14 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           {sorted.map((game) => {
-            const totalPot = game.buyIn * game.players.length;
+            const totalInitialChips = game.players.reduce(
+              (sum, p) => sum + p.initialChips,
+              0,
+            );
+            const totalPot =
+              game.chipsPerPlayer > 0
+                ? (totalInitialChips / game.chipsPerPlayer) * game.buyIn
+                : game.buyIn * game.players.length;
             return (
               <Link
                 key={game.id}
@@ -68,8 +75,8 @@ export default function HistoryPage() {
                         if (!player) return null;
                         const pricePerChip = game.buyIn / game.chipsPerPlayer;
                         const initialPrice = gp.initialChips * pricePerChip;
-                        const finalChips = gp.finalChips ?? gp.initialChips;
-                        const finalPrice = finalChips * pricePerChip;
+                        const cashOutChips = gp.cashOut ?? 0;
+                        const finalPrice = cashOutChips * pricePerChip;
                         const pnl = finalPrice - initialPrice;
                         return (
                           <tr

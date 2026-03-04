@@ -99,16 +99,16 @@ app.get("/", (c) => {
       .select({
         playerId: gamePlayers.playerId,
         name: players.name,
-        finalChips: gamePlayers.finalChips,
+        cashOut: gamePlayers.cashOut,
       })
       .from(gamePlayers)
       .innerJoin(players, eq(players.id, gamePlayers.playerId))
       .where(
-        and(eq(gamePlayers.gameId, game.id), isNotNull(gamePlayers.finalChips)),
+        and(eq(gamePlayers.gameId, game.id), isNotNull(gamePlayers.cashOut)),
       )
       .all();
 
-    const totalChips = R.sumBy(participants, (p) => p.finalChips ?? 0);
+    const totalChips = R.sumBy(participants, (p) => p.cashOut ?? 0);
     if (totalChips === 0) continue;
 
     const buyInRows = db
@@ -129,7 +129,7 @@ app.get("/", (c) => {
         : game.buyIn * participants.length;
 
     R.forEach(participants, (p) => {
-      const payout = ((p.finalChips ?? 0) / totalChips) * totalPool;
+      const payout = ((p.cashOut ?? 0) / totalChips) * totalPool;
       const entry = byPlayer.get(p.playerId);
       const name = entry?.name ?? p.name;
       const playerBuyInChips = R.sumBy(

@@ -19,9 +19,9 @@ export type ApiGame = z.infer<typeof ApiGameSchema>;
 
 export const ApiGamePlayerSchema = ApiPlayerSchema.extend({
   initialChips: z.number().positive("Initial chips must be a positive number"),
-  finalChips: z
+  cashOut: z
     .number()
-    .min(0, "Final chips must be a non-negative number")
+    .min(0, "Cash out must be a non-negative number")
     .nullable(),
 });
 
@@ -34,7 +34,7 @@ export const ApiGameWithPlayersSchema = ApiGameSchema.extend({
 export type ApiGameWithPlayers = z.infer<typeof ApiGameWithPlayersSchema>;
 
 export const FinalizeGameBodySchema = z.object({
-  finalChips: z.record(z.uuid(), z.number().min(0)),
+  cashOut: z.record(z.uuid(), z.number().min(0)),
 });
 export type FinalizeGameBody = z.infer<typeof FinalizeGameBodySchema>;
 

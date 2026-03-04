@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import {
   ApiGameWithPlayersSchema,
+  gamePlayerBuyIns,
   gamePlayers,
   games,
   players,
@@ -18,17 +19,43 @@ app.get("/", (c) => {
     db.select().from(games).orderBy(desc(games.date)).all(),
     // For each game row, fetch the game players
     R.map((game) => {
-      const gamePlayerRows = db
+      const participants = db
         .select({
-          id: players.id,
+          playerId: gamePlayers.playerId,
           name: players.name,
-          initialChips: gamePlayers.initialChips,
-          finalChips: gamePlayers.finalChips,
+          cashOut: gamePlayers.cashOut,
         })
         .from(gamePlayers)
         .innerJoin(players, eq(players.id, gamePlayers.playerId))
         .where(eq(gamePlayers.gameId, game.id))
         .all();
+
+      const buyInRows = db
+        .select({
+          playerId: gamePlayerBuyIns.playerId,
+          chips: gamePlayerBuyIns.chips,
+        })
+        .from(gamePlayerBuyIns)
+        .where(eq(gamePlayerBuyIns.gameId, game.id))
+        .all();
+
+      const buyInsByPlayer = R.groupBy(buyInRows, (b) => b.playerId);
+
+      const gamePlayerRows = R.pipe(
+        participants,
+        R.map((p) => {
+          const initialChips = R.sumBy(
+            buyInsByPlayer[p.playerId] ?? [],
+            (b) => b.chips,
+          );
+          return {
+            id: p.playerId,
+            name: p.name,
+            initialChips,
+            cashOut: p.cashOut,
+          };
+        }),
+      );
 
       return {
         ...game,

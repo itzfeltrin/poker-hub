@@ -32,8 +32,6 @@ app.post("/", async (c) => {
       .values({
         gameId,
         playerId,
-        initialChips: chipsPerPlayer,
-        finalChips: null,
       })
       .run();
 
@@ -72,11 +70,11 @@ app.patch("/:id/finalize", async (c) => {
   const parsed = FinalizeGameBodySchema.safeParse(body);
   if (!parsed.success) {
     return c.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid finalChips" },
+      { error: parsed.error.issues[0]?.message ?? "Invalid cashOut" },
       400,
     );
   }
-  const { finalChips } = parsed.data;
+  const { cashOut } = parsed.data;
 
   const participants = db
     .select({ playerId: gamePlayers.playerId })
@@ -87,12 +85,12 @@ app.patch("/:id/finalize", async (c) => {
   const missingOrInvalid = R.find(
     participants,
     ({ playerId }) =>
-      typeof finalChips[playerId] !== "number" || finalChips[playerId] < 0,
+      typeof cashOut[playerId] !== "number" || cashOut[playerId] < 0,
   );
   if (missingOrInvalid) {
     return c.json(
       {
-        error: `Invalid finalChips for player ${missingOrInvalid.playerId}. Must be a number >= 0`,
+        error: `Invalid cashOut for player ${missingOrInvalid.playerId}. Must be a number >= 0`,
       },
       400,
     );
@@ -100,7 +98,7 @@ app.patch("/:id/finalize", async (c) => {
 
   R.forEach(participants, ({ playerId }) => {
     db.update(gamePlayers)
-      .set({ finalChips: finalChips[playerId] })
+      .set({ cashOut: cashOut[playerId] })
       .where(
         and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
       )
@@ -142,7 +140,7 @@ app.post("/:id/buy-ins", async (c) => {
   const { playerId, chips } = parsed.data;
 
   const participant = db
-    .select({ playerId: gamePlayers.playerId, initialChips: gamePlayers.initialChips })
+    .select({ playerId: gamePlayers.playerId })
     .from(gamePlayers)
     .where(
       and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
@@ -167,13 +165,6 @@ app.post("/:id/buy-ins", async (c) => {
     })
     .run();
 
-  db.update(gamePlayers)
-    .set({ initialChips: participant.initialChips + buyInChips })
-    .where(
-      and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
-    )
-    .run();
-
   return c.json({ ok: true }, 201);
 });
 
@@ -181,17 +172,43 @@ function getGameWithPlayers(gameId: string): ApiGameWithPlayers | null {
   const gameRow = db.select().from(games).where(eq(games.id, gameId)).get();
   if (!gameRow) return null;
 
-  const playerRows = db
+  const participants = db
     .select({
-      id: players.id,
+      playerId: gamePlayers.playerId,
       name: players.name,
-      initialChips: gamePlayers.initialChips,
-      finalChips: gamePlayers.finalChips,
+      cashOut: gamePlayers.cashOut,
     })
     .from(gamePlayers)
     .innerJoin(players, eq(players.id, gamePlayers.playerId))
     .where(eq(gamePlayers.gameId, gameId))
     .all();
+
+  const buyInRows = db
+    .select({
+      playerId: gamePlayerBuyIns.playerId,
+      chips: gamePlayerBuyIns.chips,
+    })
+    .from(gamePlayerBuyIns)
+    .where(eq(gamePlayerBuyIns.gameId, gameId))
+    .all();
+
+  const buyInsByPlayer = R.groupBy(buyInRows, (b) => b.playerId);
+
+  const playerRows = R.pipe(
+    participants,
+    R.map((p) => {
+      const initialChips = R.sumBy(
+        buyInsByPlayer[p.playerId] ?? [],
+        (b) => b.chips,
+      );
+      return {
+        id: p.playerId,
+        name: p.name,
+        initialChips,
+        cashOut: p.cashOut,
+      };
+    }),
+  );
 
   const parsed = ApiGameWithPlayersSchema.safeParse({
     ...gameRow,
@@ -212,7 +229,7 @@ function toGameResponse(g: ApiGameWithPlayers) {
       id: p.id,
       name: p.name,
       initialChips: p.initialChips,
-      finalChips: p.finalChips,
+      cashOut: p.cashOut,
     })),
   };
 }

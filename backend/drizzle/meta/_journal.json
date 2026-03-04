@@ -29,6 +29,13 @@
       "when": 1772639316293,
       "tag": "0003_majestic_jetstream",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771840000001,
+      "tag": "0004_game_players_cash_out",
+      "breakpoints": true
     }
   ]
 }

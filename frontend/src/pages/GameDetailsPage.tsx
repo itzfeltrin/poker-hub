@@ -125,9 +125,7 @@ export default function GameDetailsPage() {
               radiusY,
             );
             const chips =
-              player.finalChips != null
-                ? player.finalChips
-                : player.initialChips;
+              player.cashOut != null ? player.cashOut : player.initialChips;
             const chipValue =
               game.chipsPerPlayer > 0
                 ? (chips / game.chipsPerPlayer) * game.buyIn

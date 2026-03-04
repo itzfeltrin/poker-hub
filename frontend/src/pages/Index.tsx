@@ -18,10 +18,17 @@ const Index = () => {
 
   const games = historyGames ?? [];
 
-  const totalPot = games.reduce(
-    (sum, g) => sum + g.buyIn * g.players.length,
-    0,
-  );
+  const totalPot = games.reduce((sum, g) => {
+    const totalInitialChips = g.players.reduce(
+      (acc, p) => acc + p.initialChips,
+      0,
+    );
+    const pot =
+      g.chipsPerPlayer > 0
+        ? (totalInitialChips / g.chipsPerPlayer) * g.buyIn
+        : g.buyIn * g.players.length;
+    return sum + pot;
+  }, 0);
 
   const topPlayer = players.reduce(
     (best, p) => {
@@ -111,8 +118,8 @@ const Index = () => {
                   const player = getPlayerById(players, gp.id);
                   if (!player) return null;
                   const cashOut =
-                    gp.finalChips != null
-                      ? (gp.finalChips / game.chipsPerPlayer) * game.buyIn
+                    gp.cashOut != null
+                      ? (gp.cashOut / game.chipsPerPlayer) * game.buyIn
                       : 0;
                   const pnl = cashOut - game.buyIn;
                   return (
