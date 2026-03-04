@@ -8,22 +8,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ubuntu
-          key: ${{ secrets.VM_SSH_KEY }}
-          command_timeout: 15m
-          script: |
-            set -e
-            export PATH="/home/ubuntu/.nvm/versions/node/v22.22.0/bin:$PATH"
-            export CI=1
-            export TURBO_UI=plain
-            cd /home/ubuntu/Dev/poker-hub
-            git pull origin main
-            bun install --frozen-lockfile
-            # Build frontend directly (no Turbo) so the step always exits and never hangs
-            (cd frontend && bun run build)
-            cp -r frontend/dist backend/public
-            sudo systemctl restart poker-hub
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend
+        run: cd frontend && bun run build
+        env:
+          CI: 1
+
+      - name: Deploy to VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" frontend/dist/ ubuntu@$VM_HOST:/home/ubuntu/Dev/poker-hub/backend/public/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new ubuntu@$VM_HOST "cd /home/ubuntu/Dev/poker-hub && git pull origin main && bun install --frozen-lockfile && sudo systemctl restart poker-hub"

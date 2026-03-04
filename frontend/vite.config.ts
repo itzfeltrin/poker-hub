@@ -7,6 +7,14 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      maxParallelFileOps: 2,
+    },
+    target: "esnext",
+    minify: "esbuild",
+  },
   plugins: [
     tanstackRouter({
       target: "react",
