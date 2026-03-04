@@ -33,4 +33,4 @@ jobs:
           echo "$VM_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" frontend/dist/ ubuntu@$VM_HOST:/home/ubuntu/Dev/poker-hub/backend/public/
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new ubuntu@$VM_HOST "cd /home/ubuntu/Dev/poker-hub && git pull origin main && bun install --frozen-lockfile && sudo systemctl restart poker-hub"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new ubuntu@$VM_HOST "export PATH=\"/home/ubuntu/.nvm/versions/node/v22.22.0/bin:\$PATH\" && cd /home/ubuntu/Dev/poker-hub && git pull origin main && bun install --frozen-lockfile && sudo systemctl restart poker-hub"
