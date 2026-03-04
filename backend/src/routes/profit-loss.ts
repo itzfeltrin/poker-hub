@@ -5,6 +5,7 @@ import { db } from "../db";
 import {
   ApiProfitLossSchema,
   games,
+  gamePlayerBuyIns,
   gamePlayers,
   players,
   PeriodFilterSchema,
@@ -77,7 +78,12 @@ app.get("/", (c) => {
         : finishedCondition;
 
   const gameRows = db
-    .select({ id: games.id, date: games.date, buyIn: games.buyIn })
+    .select({
+      id: games.id,
+      date: games.date,
+      buyIn: games.buyIn,
+      chipsPerPlayer: games.chipsPerPlayer,
+    })
     .from(games)
     .where(where)
     .orderBy(games.date)
@@ -105,14 +111,36 @@ app.get("/", (c) => {
     const totalChips = R.sumBy(participants, (p) => p.finalChips ?? 0);
     if (totalChips === 0) continue;
 
-    const numPlayers = participants.length;
-    const totalPool = game.buyIn * numPlayers;
+    const buyInRows = db
+      .select({
+        playerId: gamePlayerBuyIns.playerId,
+        chips: gamePlayerBuyIns.chips,
+      })
+      .from(gamePlayerBuyIns)
+      .where(eq(gamePlayerBuyIns.gameId, game.id))
+      .all();
+
+    const buyInsByPlayer = R.groupBy(buyInRows, (b) => b.playerId);
+    const totalBuyInChips = R.sumBy(buyInRows, (b) => b.chips);
+
+    const totalPool =
+      game.chipsPerPlayer > 0
+        ? (totalBuyInChips / game.chipsPerPlayer) * game.buyIn
+        : game.buyIn * participants.length;
 
     R.forEach(participants, (p) => {
       const payout = ((p.finalChips ?? 0) / totalChips) * totalPool;
       const entry = byPlayer.get(p.playerId);
       const name = entry?.name ?? p.name;
-      const totalIn = (entry?.totalIn ?? 0) + game.buyIn;
+      const playerBuyInChips = R.sumBy(
+        buyInsByPlayer[p.playerId] ?? [],
+        (b) => b.chips,
+      );
+      const totalIn =
+        (entry?.totalIn ?? 0) +
+        (game.chipsPerPlayer > 0
+          ? (playerBuyInChips / game.chipsPerPlayer) * game.buyIn
+          : game.buyIn);
       const totalOut = (entry?.totalOut ?? 0) + payout;
       byPlayer.set(p.playerId, { name, totalIn, totalOut });
     });

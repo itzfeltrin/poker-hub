@@ -9,5 +9,6 @@ export {
   useGameQuery,
   useCreateGameMutation,
   useFinalizeGameMutation,
+  useCreateBuyInMutation,
 } from "@/models/games/hooks";
 export { useProfitLossQuery } from "@/models/profit-loss/hooks";

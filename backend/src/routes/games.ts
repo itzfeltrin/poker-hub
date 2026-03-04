@@ -3,8 +3,10 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import {
   ApiGameSchema,
+  ApiGameBuyInCreateSchema,
   ApiGameWithPlayersSchema,
   FinalizeGameBodySchema,
+  gamePlayerBuyIns,
   gamePlayers,
   games,
   players,
@@ -21,9 +23,11 @@ app.post("/", async (c) => {
     return c.json({ error: apiGame.error.issues[0]?.message }, 400);
   }
 
-  db.insert(games).values(apiGame.data).run();
-  R.forEach(apiGame.data.playerIds, (playerId) => {
-    const { id: gameId, chipsPerPlayer } = apiGame.data;
+  const gameData = apiGame.data;
+
+  db.insert(games).values(gameData).run();
+  R.forEach(gameData.playerIds, (playerId) => {
+    const { id: gameId, chipsPerPlayer } = gameData;
     db.insert(gamePlayers)
       .values({
         gameId,
@@ -32,9 +36,18 @@ app.post("/", async (c) => {
         finalChips: null,
       })
       .run();
+
+    db.insert(gamePlayerBuyIns)
+      .values({
+        gameId,
+        playerId,
+        chips: chipsPerPlayer,
+        isInitial: true,
+      })
+      .run();
   });
 
-  return c.json(apiGame.data, 201);
+  return c.json(gameData, 201);
 });
 
 app.get("/:id", (c) => {
@@ -98,6 +111,70 @@ app.patch("/:id/finalize", async (c) => {
   const updated = getGameWithPlayers(gameId);
   if (!updated) return c.json({ error: "Failed to finalize" }, 500);
   return c.json(toGameResponse(updated));
+});
+
+app.post("/:id/buy-ins", async (c) => {
+  const gameId = c.req.param("id");
+
+  const gameRow = db
+    .select({
+      id: games.id,
+      finished: games.finished,
+      chipsPerPlayer: games.chipsPerPlayer,
+    })
+    .from(games)
+    .where(eq(games.id, gameId))
+    .get();
+
+  if (!gameRow) return c.json({ error: "Game not found" }, 404);
+  if (gameRow.finished)
+    return c.json({ error: "Game is already finalized" }, 400);
+
+  const body = await c.req.json();
+  const parsed = ApiGameBuyInCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid buy-in payload" },
+      400,
+    );
+  }
+
+  const { playerId, chips } = parsed.data;
+
+  const participant = db
+    .select({ playerId: gamePlayers.playerId, initialChips: gamePlayers.initialChips })
+    .from(gamePlayers)
+    .where(
+      and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
+    )
+    .get();
+
+  if (!participant) {
+    return c.json(
+      { error: "Player is not registered in this game" },
+      404,
+    );
+  }
+
+  const buyInChips = chips ?? gameRow.chipsPerPlayer;
+
+  db.insert(gamePlayerBuyIns)
+    .values({
+      gameId,
+      playerId,
+      chips: buyInChips,
+      isInitial: false,
+    })
+    .run();
+
+  db.update(gamePlayers)
+    .set({ initialChips: participant.initialChips + buyInChips })
+    .where(
+      and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
+    )
+    .run();
+
+  return c.json({ ok: true }, 201);
 });
 
 function getGameWithPlayers(gameId: string): ApiGameWithPlayers | null {

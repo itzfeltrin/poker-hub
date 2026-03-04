@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
-import { useGameQuery } from "@/models/games/hooks";
+import { useCreateBuyInMutation, useGameQuery } from "@/models/games/hooks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FinalizeGameDialog } from "@/components/FinalizeGameDialog";
+import { toast } from "sonner";
 /** Position a seat around an ellipse. angle in radians, 0 = top. */
 function seatPosition(
   index: number,
@@ -24,6 +25,7 @@ export default function GameDetailsPage() {
   const { gameId } = useParams({ from: "/games/$gameId" });
   const { data: game, isLoading, error } = useGameQuery(gameId);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const createBuyInMut = useCreateBuyInMutation();
 
   if (isLoading) {
     return (
@@ -47,7 +49,14 @@ export default function GameDetailsPage() {
     );
   }
 
-  const totalPot = game.buyIn * game.players.length;
+  const totalInitialChips = game.players.reduce(
+    (sum, p) => sum + p.initialChips,
+    0,
+  );
+  const totalPot =
+    game.chipsPerPlayer > 0
+      ? (totalInitialChips / game.chipsPerPlayer) * game.buyIn
+      : game.buyIn * game.players.length;
   const radiusX = 42;
   const radiusY = 38;
 
@@ -170,6 +179,29 @@ export default function GameDetailsPage() {
                     {player.name}
                   </span>
                 </div>
+                {!game.finished && gameId && (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="mt-1 h-7 w-7 rounded-full bg-background/90"
+                    disabled={createBuyInMut.isPending}
+                    onClick={async () => {
+                      try {
+                        await createBuyInMut.mutateAsync({
+                          gameId,
+                          body: { playerId: player.id },
+                        });
+                        toast.success(
+                          `Rebuy registrado para ${player.name}`,
+                        );
+                      } catch {
+                        toast.error("Falha ao registrar rebuy");
+                      }
+                    }}
+                  >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             );
           })}

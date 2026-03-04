@@ -37,3 +37,13 @@ export const FinalizeGameBodySchema = z.object({
   finalChips: z.record(z.uuid(), z.number().min(0)),
 });
 export type FinalizeGameBody = z.infer<typeof FinalizeGameBodySchema>;
+
+export const ApiGameBuyInCreateSchema = z.object({
+  playerId: z.uuid("Player ID must be a valid UUID"),
+  chips: z
+    .number()
+    .positive("Chips must be a positive number")
+    .optional(),
+});
+
+export type ApiGameBuyInCreate = z.infer<typeof ApiGameBuyInCreateSchema>;

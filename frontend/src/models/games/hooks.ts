@@ -5,6 +5,7 @@ import type {
   ApiGameCreate,
   ApiGameFinalize,
   ApiGameWithPlayers,
+  ApiGameBuyInCreate,
 } from "@poker-hub/db";
 
 const QUERY_KEYS = {
@@ -48,6 +49,24 @@ export function useFinalizeGameMutation() {
     onSuccess: (_, { gameId }) => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.history });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.game(gameId) });
+      qc.invalidateQueries({ queryKey: ["profit-loss"] });
+    },
+  });
+}
+
+export function useCreateBuyInMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      gameId,
+      body,
+    }: {
+      gameId: string;
+      body: ApiGameBuyInCreate;
+    }) => api.post<{ ok: true }>(`/games/${gameId}/buy-ins`, body),
+    onSuccess: (_, { gameId }) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.game(gameId) });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.history });
       qc.invalidateQueries({ queryKey: ["profit-loss"] });
     },
   });

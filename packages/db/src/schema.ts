@@ -35,6 +35,21 @@ export const gamePlayers = sqliteTable(
   (t) => [primaryKey({ columns: [t.gameId, t.playerId] })],
 );
 
+export const gamePlayerBuyIns = sqliteTable("game_player_buy_ins", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  gameId: text("game_id")
+    .notNull()
+    .references(() => games.id),
+  playerId: text("player_id")
+    .notNull()
+    .references(() => players.id),
+  chips: integer("chips").notNull(),
+  isInitial: integer("is_initial", { mode: "boolean" })
+    .notNull()
+    .default(false),
+});
+
 export type PlayerRow = (typeof players)["$inferSelect"];
 export type GameRow = (typeof games)["$inferSelect"];
 export type GamePlayerRow = (typeof gamePlayers)["$inferSelect"];
+export type GamePlayerBuyInRow = (typeof gamePlayerBuyIns)["$inferSelect"];
