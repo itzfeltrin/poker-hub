@@ -3,9 +3,10 @@ import { Link, useParams } from "@tanstack/react-router";
 import { useCreateBuyInMutation, useGameQuery } from "@/models/games/hooks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ArrowLeft, CheckCircle, PlusCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlusCircle, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FinalizeGameDialog } from "@/components/FinalizeGameDialog";
+import { SettlementDialog } from "@/components/SettlementDialog";
 import { toast } from "sonner";
 /** Position a seat around an ellipse. angle in radians, 0 = top. */
 function seatPosition(
@@ -25,6 +26,7 @@ export default function GameDetailsPage() {
   const { gameId } = useParams({ from: "/games/$gameId" });
   const { data: game, isLoading, error } = useGameQuery(gameId);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [settlementOpen, setSettlementOpen] = useState(false);
   const createBuyInMut = useCreateBuyInMutation();
 
   if (isLoading) {
@@ -219,6 +221,19 @@ export default function GameDetailsPage() {
         )}
       </div>
 
+      {game.finished && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setSettlementOpen(true)}
+            className="gap-1.5 text-sm md:gap-2 md:text-base"
+          >
+            <Banknote className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            Ver acertos
+          </Button>
+        </div>
+      )}
+
       {!game.finished && (
         <div className="flex justify-center">
           <Button
@@ -236,6 +251,14 @@ export default function GameDetailsPage() {
           open={finalizeOpen}
           onOpenChange={setFinalizeOpen}
           gameId={gameId}
+          game={game}
+        />
+      )}
+
+      {game.finished && gameId && (
+        <SettlementDialog
+          open={settlementOpen}
+          onOpenChange={setSettlementOpen}
           game={game}
         />
       )}
