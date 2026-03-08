@@ -1,9 +1,4 @@
-import {
-  usePlayersQuery,
-  useCreateGameMutation,
-  useFinalizeGameMutation,
-} from "@/api/hooks";
-import type { GamePlayer } from "@/utils/game";
+import { usePlayersQuery, useCreateGameMutation } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,21 +23,14 @@ const formSchema = z.object({
     z.string(),
     z.object({
       buyIn: z.number().min(0, "Entrada é obrigatória"),
-      cashOut: z.number().min(0, "Saída é obrigatória"),
     }),
   ),
 });
 
-type FormData = {
-  date: string;
-  location: string;
-  buyIn: number;
-  chipsPerPlayer: number;
-  players: Record<string, { buyIn: number; cashOut: number }>;
-};
+type FormData = z.infer<typeof formSchema>;
 
 const defaultValues: FormData = {
-  date: new Date().toISOString().split("T")[0],
+  date: new Date(),
   location: "",
   buyIn: 0,
   chipsPerPlayer: 0,
@@ -53,7 +41,6 @@ export default function NewGamePage() {
   // --- API hooks ---
   const { data: players = [] } = usePlayersQuery();
   const createGameMut = useCreateGameMutation();
-  const finalizeGameMut = useFinalizeGameMutation();
 
   // --- Routing ---
   const navigate = useNavigate();
@@ -65,9 +52,10 @@ export default function NewGamePage() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm({
     defaultValues,
     resolver: zodResolver(formSchema),
+    mode: "onChange",
   });
 
   const formBuyIn = watch("buyIn");
@@ -81,7 +69,7 @@ export default function NewGamePage() {
     } else {
       setValue("players", {
         ...current,
-        [id]: { buyIn: formBuyIn, cashOut: 0 },
+        [id]: { buyIn: formBuyIn },
       });
     }
   };
@@ -91,7 +79,6 @@ export default function NewGamePage() {
       ([playerId, playerData]) => ({
         playerId,
         buyIn: playerData.buyIn,
-        cashOut: playerData.cashOut,
       }),
     );
 
@@ -206,20 +193,6 @@ export default function NewGamePage() {
                         {...register(`players.${player.id}.buyIn`, {
                           valueAsNumber: true,
                         })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        Saída ($)
-                      </Label>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        className="bg-card"
-                        {...register(`players.${player.id}.cashOut`, {
-                          valueAsNumber: true,
-                        })}
-                        tabIndex={6}
                       />
                     </div>
                   </div>

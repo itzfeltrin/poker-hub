@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ApiPlayerSchema } from "./players";
 
 export const ApiGameSchema = z.object({
-  id: z.uuid().optional().default(crypto.randomUUID()),
+  id: z.uuid().optional().default(() => crypto.randomUUID()),
   date: z.string(),
   buyIn: z.number().positive("Buy-in must be a positive number"),
   chipsPerPlayer: z
