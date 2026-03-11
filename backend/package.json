@@ -13,7 +13,10 @@
     "@poker-hub/db": "workspace:*",
     "@hono/swagger-ui": "^0.5.3",
     "better-sqlite3": "^12.6.2",
-    "hono": "^4.11.9"
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.9",
+    "remeda": "^2.33.6",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bun": "latest",
