@@ -7,7 +7,13 @@ CREATE UNIQUE INDEX `locations_name_unique` ON `locations` (`name`);--> statemen
 
 -- Seed locations from existing game location values
 INSERT INTO `locations` (`id`, `name`)
-SELECT lower(hex(randomblob(16))), `location`
+SELECT 
+  lower(substr(hex(randomblob(4)), 1, 8) || '-' ||
+        substr(hex(randomblob(2)), 1, 4) || '-' ||
+        substr(hex(randomblob(2)), 1, 4) || '-' ||
+        substr(hex(randomblob(2)), 1, 4) || '-' ||
+        substr(hex(randomblob(6)), 1, 12)),
+  `location`
 FROM `games`
 WHERE `location` IS NOT NULL
 GROUP BY `location`;--> statement-breakpoint

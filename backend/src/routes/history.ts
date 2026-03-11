@@ -66,11 +66,7 @@ app.get("/", (c) => {
 
   const apiGamesWithPlayers = z.array(ApiGameWithPlayersSchema).safeParse(rows);
   if (!apiGamesWithPlayers.success) {
-    return c.json(
-      { errors: z.treeifyError(apiGamesWithPlayers.error), rows },
-      400,
-    );
-    // return c.json({ error: apiGamesWithPlayers.error.issues[0]?.message }, 400);
+    return c.json(z.treeifyError(apiGamesWithPlayers.error), 400);
   }
 
   return c.json(apiGamesWithPlayers.data);
