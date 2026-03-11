@@ -8,11 +8,11 @@ CREATE UNIQUE INDEX `locations_name_unique` ON `locations` (`name`);--> statemen
 -- Seed locations from existing game location values
 INSERT INTO `locations` (`id`, `name`)
 SELECT 
-  lower(substr(hex(randomblob(4)), 1, 8) || '-' ||
-        substr(hex(randomblob(2)), 1, 4) || '-' ||
-        substr(hex(randomblob(2)), 1, 4) || '-' ||
-        substr(hex(randomblob(2)), 1, 4) || '-' ||
-        substr(hex(randomblob(6)), 1, 12)),
+  lower(hex(randomblob(4))) || '-' ||
+  lower(hex(randomblob(2))) || '-' ||
+  '4' || substr(lower(hex(randomblob(2))), 2) || '-' ||
+  substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' ||
+  lower(hex(randomblob(6))),
   `location`
 FROM `games`
 WHERE `location` IS NOT NULL
