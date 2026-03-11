@@ -11,7 +11,7 @@ export const ApiGameSchema = z.object({
   playerIds: z
     .array(z.uuid("Player ID must be a valid UUID"))
     .min(1, "Player IDs must be a non-empty array of player IDs"),
-  location: z.string().optional(),
+  locationId: z.uuid().nullable().optional(),
   finished: z.boolean().optional().default(false),
 });
 

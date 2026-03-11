@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { useCreateBuyInMutation, useGameQuery } from "@/models/games/hooks";
+import { useLocationsQuery } from "@/api/hooks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ArrowLeft, CheckCircle, PlusCircle, Banknote } from "lucide-react";
@@ -25,9 +26,14 @@ function seatPosition(
 export default function GameDetailsPage() {
   const { gameId } = useParams({ from: "/games/$gameId" });
   const { data: game, isLoading, error } = useGameQuery(gameId);
+  const { data: locations = [] } = useLocationsQuery();
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [settlementOpen, setSettlementOpen] = useState(false);
   const createBuyInMut = useCreateBuyInMutation();
+
+  const locationName = game?.locationId
+    ? locations.find((l) => l.id === game.locationId)?.name ?? "—"
+    : "—";
 
   if (isLoading) {
     return (
@@ -81,7 +87,7 @@ export default function GameDetailsPage() {
             {formatDate(game.date)}
           </p>
           <p className="font-display text-sm font-semibold md:text-base">
-            {game.location ?? "—"}
+            {locationName}
           </p>
         </div>
       </div>

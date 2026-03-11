@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
 import players from "./routes/players";
+import locations from "./routes/locations";
 import games from "./routes/games";
 import history from "./routes/history";
 import profitLoss from "./routes/profit-loss";
@@ -17,6 +18,7 @@ if (!isProduction) {
       name: "Poker Hub API",
       endpoints: {
         players: "/api/players",
+        locations: "/api/locations",
         games: "/api/games",
         history: "/api/history",
         profit_loss: "/api/profit-loss",
@@ -28,6 +30,7 @@ if (!isProduction) {
 api.get("/doc", (c) => c.json(openApiDoc));
 api.get("/docs", swaggerUI({ url: "/api/doc" }));
 api.route("/players", players);
+api.route("/locations", locations);
 api.route("/games", games);
 api.route("/history", history);
 api.route("/profit-loss", profitLoss);

@@ -14,6 +14,9 @@ import { Route as PlayersRouteImport } from './routes/players'
 import { Route as NewGameRouteImport } from './routes/new-game'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LocationsIndexRouteImport } from './routes/locations/index'
+import { Route as LocationsNewRouteImport } from './routes/locations/new'
+import { Route as LocationsLocationIdRouteImport } from './routes/locations/$locationId'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 
 const StandingsRoute = StandingsRouteImport.update({
@@ -41,6 +44,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocationsIndexRoute = LocationsIndexRouteImport.update({
+  id: '/locations/',
+  path: '/locations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocationsNewRoute = LocationsNewRouteImport.update({
+  id: '/locations/new',
+  path: '/locations/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocationsLocationIdRoute = LocationsLocationIdRouteImport.update({
+  id: '/locations/$locationId',
+  path: '/locations/$locationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesGameIdRoute = GamesGameIdRouteImport.update({
   id: '/games/$gameId',
   path: '/games/$gameId',
@@ -54,6 +72,9 @@ export interface FileRoutesByFullPath {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/locations/$locationId': typeof LocationsLocationIdRoute
+  '/locations/new': typeof LocationsNewRoute
+  '/locations/': typeof LocationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +83,9 @@ export interface FileRoutesByTo {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/locations/$locationId': typeof LocationsLocationIdRoute
+  '/locations/new': typeof LocationsNewRoute
+  '/locations': typeof LocationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +95,9 @@ export interface FileRoutesById {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/locations/$locationId': typeof LocationsLocationIdRoute
+  '/locations/new': typeof LocationsNewRoute
+  '/locations/': typeof LocationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +108,9 @@ export interface FileRouteTypes {
     | '/players'
     | '/standings'
     | '/games/$gameId'
+    | '/locations/$locationId'
+    | '/locations/new'
+    | '/locations/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +119,9 @@ export interface FileRouteTypes {
     | '/players'
     | '/standings'
     | '/games/$gameId'
+    | '/locations/$locationId'
+    | '/locations/new'
+    | '/locations'
   id:
     | '__root__'
     | '/'
@@ -97,6 +130,9 @@ export interface FileRouteTypes {
     | '/players'
     | '/standings'
     | '/games/$gameId'
+    | '/locations/$locationId'
+    | '/locations/new'
+    | '/locations/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +142,9 @@ export interface RootRouteChildren {
   PlayersRoute: typeof PlayersRoute
   StandingsRoute: typeof StandingsRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
+  LocationsLocationIdRoute: typeof LocationsLocationIdRoute
+  LocationsNewRoute: typeof LocationsNewRoute
+  LocationsIndexRoute: typeof LocationsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -145,6 +184,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/locations/': {
+      id: '/locations/'
+      path: '/locations'
+      fullPath: '/locations/'
+      preLoaderRoute: typeof LocationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/locations/new': {
+      id: '/locations/new'
+      path: '/locations/new'
+      fullPath: '/locations/new'
+      preLoaderRoute: typeof LocationsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/locations/$locationId': {
+      id: '/locations/$locationId'
+      path: '/locations/$locationId'
+      fullPath: '/locations/$locationId'
+      preLoaderRoute: typeof LocationsLocationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/$gameId': {
       id: '/games/$gameId'
       path: '/games/$gameId'
@@ -162,6 +222,9 @@ const rootRouteChildren: RootRouteChildren = {
   PlayersRoute: PlayersRoute,
   StandingsRoute: StandingsRoute,
   GamesGameIdRoute: GamesGameIdRoute,
+  LocationsLocationIdRoute: LocationsLocationIdRoute,
+  LocationsNewRoute: LocationsNewRoute,
+  LocationsIndexRoute: LocationsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

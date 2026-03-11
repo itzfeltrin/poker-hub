@@ -11,13 +11,18 @@ export const players = sqliteTable("players", {
   name: text("name").notNull(),
 });
 
+export const locations = sqliteTable("locations", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
 export const games = sqliteTable("games", {
   id: text("id").primaryKey(),
   date: text("date").notNull(),
   buyIn: real("buy_in").notNull(),
   chipsPerPlayer: integer("chips_per_player").notNull(),
   finished: integer("finished", { mode: "boolean" }).notNull().default(false),
-  location: text("location"),
+  locationId: text("location_id").references(() => locations.id),
 });
 
 export const gamePlayers = sqliteTable(
@@ -49,6 +54,7 @@ export const gamePlayerBuyIns = sqliteTable("game_player_buy_ins", {
 });
 
 export type PlayerRow = (typeof players)["$inferSelect"];
+export type LocationRow = (typeof locations)["$inferSelect"];
 export type GameRow = (typeof games)["$inferSelect"];
 export type GamePlayerRow = (typeof gamePlayers)["$inferSelect"];
 export type GamePlayerBuyInRow = (typeof gamePlayerBuyIns)["$inferSelect"];

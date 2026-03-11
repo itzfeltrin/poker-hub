@@ -2,6 +2,7 @@ import {
   usePlayersQuery,
   useHistoryQuery,
   useProfitLossQuery,
+  useLocationsQuery,
 } from "@/api/hooks";
 import { getPlayerPnL, getPlayerById } from "@/utils/player";
 import { StatCard } from "@/components/StatCard";
@@ -21,6 +22,12 @@ const Index = () => {
   const { data: players = [] } = usePlayersQuery();
   const { data: games = [] } = useHistoryQuery();
   const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
+  const { data: locations = [] } = useLocationsQuery();
+
+  const getLocationName = (locationId: string | null | undefined) => {
+    if (!locationId) return "Sem local";
+    return locations.find((l) => l.id === locationId)?.name ?? "Local desconhecido";
+  };
 
   const totalPot = games.reduce((sum, g) => {
     const totalInitialChips = g.players.reduce(
@@ -104,7 +111,7 @@ const Index = () => {
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="font-display font-semibold">{game.location}</p>
+                  <p className="font-display font-semibold">{getLocationName(game.locationId)}</p>
                   <p className="text-sm text-muted-foreground">
                     {formatDate(game.date)}
                   </p>

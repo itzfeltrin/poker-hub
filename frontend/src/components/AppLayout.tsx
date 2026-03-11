@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Users, Plus, History, TrendingUp } from "lucide-react";
+import { Home, Users, MapPin, Plus, History, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 
 const navItems = [
   { to: "/", label: "Início", icon: Home },
   { to: "/players", label: "Jogadores", icon: Users },
+  { to: "/locations", label: "Locais", icon: MapPin },
   { to: "/new-game", label: "Nova partida", icon: Plus },
   { to: "/history", label: "Histórico", icon: History },
   { to: "/standings", label: "Classificação", icon: TrendingUp },

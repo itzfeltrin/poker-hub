@@ -1,8 +1,9 @@
 import { usePlayersQuery, useCreateGameMutation } from "@/api/hooks";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { LocationCombobox } from "@/components/LocationCombobox";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -22,7 +23,7 @@ const formSchema = z.object({
       return { message: "Data inválida" };
     },
   }),
-  location: z.string(),
+  locationId: z.string().nullable(),
   buyIn: z.number().min(0, "Entrada é obrigatória"),
   chipsPerPlayer: z.number().min(1, "Número de fichas é obrigatório"),
   players: z.record(
@@ -37,7 +38,7 @@ type FormData = z.infer<typeof formSchema>;
 
 const defaultValues: FormData = {
   date: new Date(),
-  location: "",
+  locationId: null,
   buyIn: 0,
   chipsPerPlayer: 0,
   players: {},
@@ -57,6 +58,7 @@ export default function NewGamePage() {
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm({
     defaultValues,
@@ -93,7 +95,7 @@ export default function NewGamePage() {
         buyIn: data.buyIn,
         chipsPerPlayer: data.chipsPerPlayer,
         playerIds: players.map((p) => p.playerId),
-        location: data.location,
+        locationId: data.locationId,
         date: data.date,
       });
       toast.success("Partida registrada!");
@@ -124,11 +126,15 @@ export default function NewGamePage() {
           )}
         </FormControl>
         <FormControl label="Local">
-          <Input
-            {...register("location")}
-            placeholder="ex.: Casa do Caio"
-            className="bg-card"
-            tabIndex={2}
+          <Controller
+            name="locationId"
+            control={control}
+            render={({ field }) => (
+              <LocationCombobox
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
           />
         </FormControl>
         <FormControl label="Entrada (R$)">

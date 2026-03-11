@@ -36,6 +36,13 @@
       "when": 1771840000001,
       "tag": "0004_game_players_cash_out",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773340000000,
+      "tag": "0005_locations",
+      "breakpoints": true
     }
   ]
 }

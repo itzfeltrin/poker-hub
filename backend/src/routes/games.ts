@@ -223,7 +223,7 @@ function toGameResponse(g: ApiGameWithPlayers) {
     date: g.date,
     buyIn: g.buyIn,
     chipsPerPlayer: g.chipsPerPlayer,
-    location: g.location,
+    locationId: g.locationId,
     finished: g.finished,
     players: R.map(g.players, (p) => ({
       id: p.id,

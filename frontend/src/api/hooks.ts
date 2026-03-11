@@ -5,6 +5,14 @@ export {
   useCreatePlayerMutation,
 } from "@/models/players/hooks";
 export {
+  useLocationsQuery,
+  useLocationQuery,
+  useCreateLocationMutation,
+  useUpdateLocationMutation,
+  useDeleteLocationMutation,
+  type LocationWithGameCount,
+} from "@/models/locations/hooks";
+export {
   useHistoryQuery,
   useGameQuery,
   useCreateGameMutation,

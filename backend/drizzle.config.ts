@@ -5,6 +5,7 @@ export default defineConfig({
   schema: "./node_modules/@poker-hub/db/src/schema.ts",
   out: "./drizzle",
   dbCredentials: {
-    url: "poker-hub.sqlite",
+    // TODO: Consider adding ts env validation
+    url: process.env.DATABASE_PATH as string,
   },
 });

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useHistoryQuery, usePlayersQuery } from "@/api/hooks";
+import { useHistoryQuery, usePlayersQuery, useLocationsQuery } from "@/api/hooks";
 import { getPlayerById } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
@@ -8,6 +8,12 @@ import { Container, Lockup } from "@poker-hub/design-system";
 export default function HistoryPage() {
   const { data: games = [] } = useHistoryQuery();
   const { data: players } = usePlayersQuery();
+  const { data: locations = [] } = useLocationsQuery();
+
+  const getLocationName = (locationId: string | null | undefined) => {
+    if (!locationId) return "Sem local";
+    return locations.find((l) => l.id === locationId)?.name ?? "Local desconhecido";
+  };
 
   const sorted = [...games].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -43,7 +49,7 @@ export default function HistoryPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="font-display font-semibold text-lg">
-                      {game.location}
+                      {getLocationName(game.locationId)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formatDate(game.date)}
