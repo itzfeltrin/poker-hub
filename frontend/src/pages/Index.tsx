@@ -8,9 +8,14 @@ import { StatCard } from "@/components/StatCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Link } from "@tanstack/react-router";
 import { Users, Gamepad2, TrendingUp, Plus, DollarSign } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { formatPnl, formatCurrency, formatDate } from "@/lib/utils";
-import { Title, Subtitle, Heading } from "@poker-hub/design-system";
+import {
+  Container,
+  Lockup,
+  Heading,
+  Button,
+  Grid,
+} from "@poker-hub/design-system";
 
 const Index = () => {
   const { data: players = [] } = usePlayersQuery();
@@ -42,16 +47,14 @@ const Index = () => {
     .slice(0, 3);
 
   return (
-    <div className="space-y-8 pb-20 md:pb-0">
+    <Container size="full">
       <div className="flex items-end justify-between">
-        <div>
-          <Title>
-            <span className="text-gradient-gold">Poker Hub</span>
-          </Title>
-          <Subtitle className="mt-1">
+        <Lockup>
+          <Lockup.Title className="text-gradient-gold">Poker Hub</Lockup.Title>
+          <Lockup.Subtitle>
             Acompanhe suas partidas e acerte as contas.
-          </Subtitle>
-        </div>
+          </Lockup.Subtitle>
+        </Lockup>
         <Button asChild className="hidden md:flex">
           <Link to="/new-game">
             <Plus className="h-4 w-4 mr-2" />
@@ -60,7 +63,7 @@ const Index = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <Grid cols={4}>
         <StatCard
           label="Jogadores"
           value={players.length}
@@ -82,7 +85,7 @@ const Index = () => {
           icon={<TrendingUp className="h-4 w-4" />}
           trend="up"
         />
-      </div>
+      </Grid>
 
       <section>
         <div className="flex items-center justify-between mb-4">
@@ -141,7 +144,7 @@ const Index = () => {
           ))}
         </div>
       </section>
-    </div>
+    </Container>
   );
 };
 

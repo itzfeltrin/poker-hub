@@ -1,15 +1,20 @@
 import { usePlayersQuery, useCreateGameMutation } from "@/api/hooks";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Title, Subtitle } from "@poker-hub/design-system";
+import {
+  Container,
+  Lockup,
+  Grid,
+  FormControl,
+  Button,
+  Input,
+  Label,
+  Checkbox,
+} from "@poker-hub/design-system";
 
 const formSchema = z.object({
   date: z.coerce.date({
@@ -99,15 +104,14 @@ export default function NewGamePage() {
   };
 
   return (
-    <div className="space-y-8 max-w-2xl pb-20 md:pb-0">
-      <div>
-        <Title>Registrar partida</Title>
-        <Subtitle className="mt-1">Registre o resultado da sua sessão.</Subtitle>
-      </div>
+    <Container size="md">
+      <Lockup>
+        <Lockup.Title>Registrar partida</Lockup.Title>
+        <Lockup.Subtitle>Registre o resultado da sua sessão.</Lockup.Subtitle>
+      </Lockup>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Data</Label>
+      <Grid cols={2}>
+        <FormControl label="Data">
           <Input
             {...register("date", { valueAsDate: true })}
             type="date"
@@ -118,18 +122,16 @@ export default function NewGamePage() {
           {errors.date && (
             <p className="text-sm text-destructive">{errors.date.message}</p>
           )}
-        </div>
-        <div className="space-y-2">
-          <Label>Local</Label>
+        </FormControl>
+        <FormControl label="Local">
           <Input
             {...register("location")}
             placeholder="ex.: Casa do Caio"
             className="bg-card"
             tabIndex={2}
           />
-        </div>
-        <div className="space-y-2">
-          <Label>Entrada (R$)</Label>
+        </FormControl>
+        <FormControl label="Entrada (R$)">
           <Input
             type="number"
             inputMode="decimal"
@@ -140,9 +142,8 @@ export default function NewGamePage() {
             className="bg-card"
             tabIndex={3}
           />
-        </div>
-        <div className="space-y-2">
-          <Label>Número de fichas</Label>
+        </FormControl>
+        <FormControl label="Número de fichas">
           <Input
             type="number"
             inputMode="numeric"
@@ -153,8 +154,8 @@ export default function NewGamePage() {
             className="bg-card"
             tabIndex={4}
           />
-        </div>
-      </div>
+        </FormControl>
+      </Grid>
 
       <div className="space-y-4">
         <Label className="text-base">Jogadores</Label>
@@ -209,6 +210,6 @@ export default function NewGamePage() {
       >
         Salvar partida
       </Button>
-    </div>
+    </Container>
   );
 }

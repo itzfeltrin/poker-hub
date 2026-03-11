@@ -6,16 +6,19 @@ import {
 } from "@/api/hooks";
 import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Title, Subtitle } from "@poker-hub/design-system";
+import {
+  Container,
+  Lockup,
+  Button,
+  Input,
+  Label,
+} from "@poker-hub/design-system";
 
 const formSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório"),
@@ -55,11 +58,11 @@ export default function PlayersPage() {
   };
 
   return (
-    <div className="space-y-8 pb-20 md:pb-0">
-      <div>
-        <Title>Jogadores</Title>
-        <Subtitle className="mt-1">Gerencie sua turma de poker.</Subtitle>
-      </div>
+    <Container size="full">
+      <Lockup>
+        <Lockup.Title>Jogadores</Lockup.Title>
+        <Lockup.Subtitle>Gerencie sua turma de poker.</Lockup.Subtitle>
+      </Lockup>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -131,6 +134,6 @@ export default function PlayersPage() {
           })}
         </AnimatePresence>
       </div>
-    </div>
+    </Container>
   );
 }

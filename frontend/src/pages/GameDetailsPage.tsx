@@ -4,7 +4,7 @@ import { useCreateBuyInMutation, useGameQuery } from "@/models/games/hooks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ArrowLeft, CheckCircle, PlusCircle, Banknote } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@poker-hub/design-system";
 import { FinalizeGameDialog } from "@/components/FinalizeGameDialog";
 import { SettlementDialog } from "@/components/SettlementDialog";
 import { toast } from "sonner";

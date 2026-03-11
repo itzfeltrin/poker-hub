@@ -7,7 +7,7 @@ import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { motion } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
-import { Title, Subtitle } from "@poker-hub/design-system";
+import { Container, Lockup } from "@poker-hub/design-system";
 
 export default function StandingsPage() {
   const { data: players = [] } = usePlayersQuery();
@@ -25,13 +25,13 @@ export default function StandingsPage() {
   const maxAbsPnl = Math.max(...standings.map((s) => Math.abs(s.pnl)), 1);
 
   return (
-    <div className="space-y-8 pb-20 md:pb-0">
-      <div>
-        <Title>Classificação</Title>
-        <Subtitle className="mt-1">
+    <Container size="full">
+      <Lockup>
+        <Lockup.Title>Classificação</Lockup.Title>
+        <Lockup.Subtitle>
           Ranking de lucro e perda de todos os tempos.
-        </Subtitle>
-      </div>
+        </Lockup.Subtitle>
+      </Lockup>
 
       <div className="space-y-3">
         {standings.map((player, i) => {
@@ -80,6 +80,6 @@ export default function StandingsPage() {
           );
         })}
       </div>
-    </div>
+    </Container>
   );
 }

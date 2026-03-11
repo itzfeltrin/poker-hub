@@ -3,7 +3,7 @@ import { useHistoryQuery, usePlayersQuery } from "@/api/hooks";
 import { getPlayerById } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
-import { Title, Subtitle } from "@poker-hub/design-system";
+import { Container, Lockup } from "@poker-hub/design-system";
 
 export default function HistoryPage() {
   const { data: games = [] } = useHistoryQuery();
@@ -12,11 +12,11 @@ export default function HistoryPage() {
   const sorted = [...games].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <div className="space-y-8 pb-20 md:pb-0">
-      <div>
-        <Title>Histórico de partidas</Title>
-        <Subtitle className="mt-1">{games.length} partidas registradas.</Subtitle>
-      </div>
+    <Container size="full">
+      <Lockup>
+        <Lockup.Title>Histórico de partidas</Lockup.Title>
+        <Lockup.Subtitle>{games.length} partidas registradas.</Lockup.Subtitle>
+      </Lockup>
 
       {sorted.length === 0 ? (
         <p className="text-muted-foreground text-center py-16">
@@ -110,6 +110,6 @@ export default function HistoryPage() {
           })}
         </div>
       )}
-    </div>
+    </Container>
   );
 }
