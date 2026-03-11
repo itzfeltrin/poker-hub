@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { Users, Gamepad2, TrendingUp, Plus, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPnl, formatCurrency, formatDate } from "@/lib/utils";
+import { Title, Subtitle, Heading } from "@poker-hub/design-system";
 
 const Index = () => {
   const { data: players = [] } = usePlayersQuery();
@@ -44,12 +45,12 @@ const Index = () => {
     <div className="space-y-8 pb-20 md:pb-0">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <Title>
             <span className="text-gradient-gold">Poker Hub</span>
-          </h1>
-          <p className="text-muted-foreground mt-1">
+          </Title>
+          <Subtitle className="mt-1">
             Acompanhe suas partidas e acerte as contas.
-          </p>
+          </Subtitle>
         </div>
         <Button asChild className="hidden md:flex">
           <Link to="/new-game">
@@ -85,9 +86,7 @@ const Index = () => {
 
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-display font-semibold">
-            Partidas recentes
-          </h2>
+          <Heading>Partidas recentes</Heading>
           <Link to="/history" className="text-sm text-primary hover:underline">
             Ver todas →
           </Link>

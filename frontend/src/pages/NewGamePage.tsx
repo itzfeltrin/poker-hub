@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Title, Subtitle } from "@poker-hub/design-system";
 
 const formSchema = z.object({
   date: z.coerce.date({
@@ -100,10 +101,8 @@ export default function NewGamePage() {
   return (
     <div className="space-y-8 max-w-2xl pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Registrar partida</h1>
-        <p className="text-muted-foreground mt-1">
-          Registre o resultado da sua sessão.
-        </p>
+        <Title>Registrar partida</Title>
+        <Subtitle className="mt-1">Registre o resultado da sua sessão.</Subtitle>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

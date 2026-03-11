@@ -1,8 +1,15 @@
 import type { Config } from "tailwindcss";
+import { spacing, elevation } from "@poker-hub/design-system/tokens";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+    "../packages/design-system/src/**/*.{ts,tsx}",
+  ],
   prefix: "",
   theme: {
     container: {
@@ -13,6 +20,8 @@ export default {
       },
     },
     extend: {
+      spacing,
+      boxShadow: elevation,
       fontFamily: {
         display: ["Space Grotesk", "sans-serif"],
         body: ["Outfit", "sans-serif"],

@@ -3,6 +3,7 @@ import { useHistoryQuery, usePlayersQuery } from "@/api/hooks";
 import { getPlayerById } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
+import { Title, Subtitle } from "@poker-hub/design-system";
 
 export default function HistoryPage() {
   const { data: games = [] } = useHistoryQuery();
@@ -13,12 +14,8 @@ export default function HistoryPage() {
   return (
     <div className="space-y-8 pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Histórico de partidas
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          {games.length} partidas registradas.
-        </p>
+        <Title>Histórico de partidas</Title>
+        <Subtitle className="mt-1">{games.length} partidas registradas.</Subtitle>
       </div>
 
       {sorted.length === 0 ? (

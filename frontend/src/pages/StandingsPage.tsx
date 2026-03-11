@@ -7,6 +7,7 @@ import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { motion } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
+import { Title, Subtitle } from "@poker-hub/design-system";
 
 export default function StandingsPage() {
   const { data: players = [] } = usePlayersQuery();
@@ -26,10 +27,10 @@ export default function StandingsPage() {
   return (
     <div className="space-y-8 pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Classificação</h1>
-        <p className="text-muted-foreground mt-1">
+        <Title>Classificação</Title>
+        <Subtitle className="mt-1">
           Ranking de lucro e perda de todos os tempos.
-        </p>
+        </Subtitle>
       </div>
 
       <div className="space-y-3">

@@ -15,6 +15,7 @@ import { formatPnl } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Title, Subtitle } from "@poker-hub/design-system";
 
 const formSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório"),
@@ -56,10 +57,8 @@ export default function PlayersPage() {
   return (
     <div className="space-y-8 pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Jogadores</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie sua turma de poker.
-        </p>
+        <Title>Jogadores</Title>
+        <Subtitle className="mt-1">Gerencie sua turma de poker.</Subtitle>
       </div>
 
       <form
