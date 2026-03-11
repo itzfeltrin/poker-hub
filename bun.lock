@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "poker-hub",
+      "dependencies": {
+        "workbox-window": "^7.4.0",
+      },
       "devDependencies": {
         "turbo": "^2.3.0",
         "typescript": "^5.8.3",

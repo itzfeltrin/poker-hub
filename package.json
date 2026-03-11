@@ -18,5 +18,8 @@
     "frontend",
     "packages/*"
   ],
-  "packageManager": "bun@1.2.0"
+  "packageManager": "bun@1.2.0",
+  "dependencies": {
+    "workbox-window": "^7.4.0"
+  }
 }
