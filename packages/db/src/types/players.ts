@@ -6,3 +6,6 @@ export const ApiPlayerSchema = z.object({
 });
 
 export type ApiPlayer = z.infer<typeof ApiPlayerSchema>;
+
+export const ApiPlayerCreateSchema = ApiPlayerSchema.pick({ name: true });
+export type ApiPlayerCreate = z.infer<typeof ApiPlayerCreateSchema>;

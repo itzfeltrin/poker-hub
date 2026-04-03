@@ -6,6 +6,7 @@ import {
   gamePlayerBuyIns,
   gamePlayers,
   games,
+  groupMembers,
   players,
 } from "@poker-hub/db";
 import * as R from "remeda";
@@ -14,28 +15,45 @@ import z from "zod";
 const app = new Hono();
 
 app.get("/", (c) => {
+  const groupIdParsed = z.uuid().safeParse(c.req.query("groupId"));
+
+  const filteredGames = groupIdParsed.success
+    ? db
+        .select()
+        .from(games)
+        .where(eq(games.groupId, groupIdParsed.data))
+        .orderBy(desc(games.date))
+        .all()
+    : db.select().from(games).orderBy(desc(games.date)).all();
+
   const rows = R.pipe(
-    // Fetch all game rows
-    db.select().from(games).orderBy(desc(games.date)).all(),
-    // For each game row, fetch the game players
+    filteredGames,
     R.map((game) => {
       const participants = db
         .select({
-          playerId: gamePlayers.playerId,
+          playerId: groupMembers.playerId,
           name: players.name,
           cashOut: gamePlayers.cashOut,
         })
         .from(gamePlayers)
-        .innerJoin(players, eq(players.id, gamePlayers.playerId))
+        .innerJoin(
+          groupMembers,
+          eq(gamePlayers.groupMemberId, groupMembers.id),
+        )
+        .innerJoin(players, eq(players.id, groupMembers.playerId))
         .where(eq(gamePlayers.gameId, game.id))
         .all();
 
       const buyInRows = db
         .select({
-          playerId: gamePlayerBuyIns.playerId,
+          playerId: groupMembers.playerId,
           chips: gamePlayerBuyIns.chips,
         })
         .from(gamePlayerBuyIns)
+        .innerJoin(
+          groupMembers,
+          eq(gamePlayerBuyIns.groupMemberId, groupMembers.id),
+        )
         .where(eq(gamePlayerBuyIns.gameId, game.id))
         .all();
 

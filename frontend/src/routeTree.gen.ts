@@ -15,8 +15,11 @@ import { Route as NewGameRouteImport } from './routes/new-game'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LocationsIndexRouteImport } from './routes/locations/index'
+import { Route as GroupsIndexRouteImport } from './routes/groups/index'
 import { Route as LocationsNewRouteImport } from './routes/locations/new'
 import { Route as LocationsLocationIdRouteImport } from './routes/locations/$locationId'
+import { Route as GroupsNewRouteImport } from './routes/groups/new'
+import { Route as GroupsGroupIdRouteImport } from './routes/groups/$groupId'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 
 const StandingsRoute = StandingsRouteImport.update({
@@ -49,6 +52,11 @@ const LocationsIndexRoute = LocationsIndexRouteImport.update({
   path: '/locations/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsIndexRoute = GroupsIndexRouteImport.update({
+  id: '/groups/',
+  path: '/groups/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocationsNewRoute = LocationsNewRouteImport.update({
   id: '/locations/new',
   path: '/locations/new',
@@ -57,6 +65,16 @@ const LocationsNewRoute = LocationsNewRouteImport.update({
 const LocationsLocationIdRoute = LocationsLocationIdRouteImport.update({
   id: '/locations/$locationId',
   path: '/locations/$locationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupsNewRoute = GroupsNewRouteImport.update({
+  id: '/groups/new',
+  path: '/groups/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
+  id: '/groups/$groupId',
+  path: '/groups/$groupId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesGameIdRoute = GamesGameIdRouteImport.update({
@@ -72,8 +90,11 @@ export interface FileRoutesByFullPath {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
+  '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
+  '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -83,8 +104,11 @@ export interface FileRoutesByTo {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
+  '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
+  '/groups': typeof GroupsIndexRoute
   '/locations': typeof LocationsIndexRoute
 }
 export interface FileRoutesById {
@@ -95,8 +119,11 @@ export interface FileRoutesById {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
+  '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
+  '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
 }
 export interface FileRouteTypes {
@@ -108,8 +135,11 @@ export interface FileRouteTypes {
     | '/players'
     | '/standings'
     | '/games/$gameId'
+    | '/groups/$groupId'
+    | '/groups/new'
     | '/locations/$locationId'
     | '/locations/new'
+    | '/groups/'
     | '/locations/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -119,8 +149,11 @@ export interface FileRouteTypes {
     | '/players'
     | '/standings'
     | '/games/$gameId'
+    | '/groups/$groupId'
+    | '/groups/new'
     | '/locations/$locationId'
     | '/locations/new'
+    | '/groups'
     | '/locations'
   id:
     | '__root__'
@@ -130,8 +163,11 @@ export interface FileRouteTypes {
     | '/players'
     | '/standings'
     | '/games/$gameId'
+    | '/groups/$groupId'
+    | '/groups/new'
     | '/locations/$locationId'
     | '/locations/new'
+    | '/groups/'
     | '/locations/'
   fileRoutesById: FileRoutesById
 }
@@ -142,8 +178,11 @@ export interface RootRouteChildren {
   PlayersRoute: typeof PlayersRoute
   StandingsRoute: typeof StandingsRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
+  GroupsGroupIdRoute: typeof GroupsGroupIdRoute
+  GroupsNewRoute: typeof GroupsNewRoute
   LocationsLocationIdRoute: typeof LocationsLocationIdRoute
   LocationsNewRoute: typeof LocationsNewRoute
+  GroupsIndexRoute: typeof GroupsIndexRoute
   LocationsIndexRoute: typeof LocationsIndexRoute
 }
 
@@ -191,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/groups/': {
+      id: '/groups/'
+      path: '/groups'
+      fullPath: '/groups/'
+      preLoaderRoute: typeof GroupsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/locations/new': {
       id: '/locations/new'
       path: '/locations/new'
@@ -203,6 +249,20 @@ declare module '@tanstack/react-router' {
       path: '/locations/$locationId'
       fullPath: '/locations/$locationId'
       preLoaderRoute: typeof LocationsLocationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/groups/new': {
+      id: '/groups/new'
+      path: '/groups/new'
+      fullPath: '/groups/new'
+      preLoaderRoute: typeof GroupsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/groups/$groupId': {
+      id: '/groups/$groupId'
+      path: '/groups/$groupId'
+      fullPath: '/groups/$groupId'
+      preLoaderRoute: typeof GroupsGroupIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/$gameId': {
@@ -222,8 +282,11 @@ const rootRouteChildren: RootRouteChildren = {
   PlayersRoute: PlayersRoute,
   StandingsRoute: StandingsRoute,
   GamesGameIdRoute: GamesGameIdRoute,
+  GroupsGroupIdRoute: GroupsGroupIdRoute,
+  GroupsNewRoute: GroupsNewRoute,
   LocationsLocationIdRoute: LocationsLocationIdRoute,
   LocationsNewRoute: LocationsNewRoute,
+  GroupsIndexRoute: GroupsIndexRoute,
   LocationsIndexRoute: LocationsIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -4,6 +4,7 @@ import {
   useProfitLossQuery,
   useLocationsQuery,
 } from "@/api/hooks";
+import { useGroupScope } from "@/contexts/GroupContext";
 import { getPlayerPnL, getPlayerById } from "@/utils/player";
 import { StatCard } from "@/components/StatCard";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -19,9 +20,13 @@ import {
 } from "@poker-hub/design-system";
 
 const Index = () => {
+  const { selectedGroupId } = useGroupScope();
   const { data: players = [] } = usePlayersQuery();
-  const { data: games = [] } = useHistoryQuery();
-  const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
+  const { data: games = [] } = useHistoryQuery(selectedGroupId);
+  const { data: profitLoss } = useProfitLossQuery({
+    period: "all_time",
+    groupId: selectedGroupId,
+  });
   const { data: locations = [] } = useLocationsQuery();
 
   const getLocationName = (locationId: string | null | undefined) => {

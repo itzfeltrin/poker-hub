@@ -9,12 +9,77 @@ import {
   gamePlayerBuyIns,
   gamePlayers,
   games,
+  groupMembers,
+  groups,
   players,
 } from "@poker-hub/db";
 import type { ApiGameWithPlayers } from "@poker-hub/db";
 import * as R from "remeda";
 
 const app = new Hono();
+
+function rosterKey(playerIds: readonly string[]): string {
+  return R.pipe(
+    playerIds,
+    R.uniqueBy((x) => x),
+    R.sortBy((x) => x),
+    (ids) => ids.join("|"),
+  );
+}
+
+function findGroupIdByExactRoster(playerIds: string[]): string | null {
+  const wanted = rosterKey(playerIds);
+  const allGroups = db.select({ id: groups.id }).from(groups).all();
+  for (const { id: gid } of allGroups) {
+    const memberRows = db
+      .select({ playerId: groupMembers.playerId })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, gid))
+      .all();
+    const have = rosterKey(R.map(memberRows, (m) => m.playerId));
+    if (have === wanted) return gid;
+  }
+  return null;
+}
+
+function createGroupWithRoster(playerIds: string[]): string {
+  const unique = R.pipe(
+    playerIds,
+    R.uniqueBy((x) => x),
+    R.sortBy((x) => x),
+  );
+  const groupId = crypto.randomUUID();
+  let baseName = `Mesa · ${unique.length} jogador${unique.length === 1 ? "" : "es"}`;
+  let name = baseName;
+  let n = 0;
+  while (db.select().from(groups).where(eq(groups.name, name)).get()) {
+    n += 1;
+    name = `${baseName} (${n})`;
+  }
+  db.insert(groups).values({ id: groupId, name }).run();
+  for (const playerId of unique) {
+    const mid = crypto.randomUUID();
+    db.insert(groupMembers).values({ id: mid, groupId, playerId }).run();
+  }
+  return groupId;
+}
+
+function ensureGroupMemberId(groupId: string, playerId: string): string {
+  const existing = db
+    .select({ id: groupMembers.id })
+    .from(groupMembers)
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.playerId, playerId),
+      ),
+    )
+    .get();
+  if (existing) return existing.id;
+  const id = crypto.randomUUID();
+  db.insert(groupMembers).values({ id, groupId, playerId }).run();
+  return id;
+}
 
 app.post("/", async (c) => {
   const body = await c.req.json();
@@ -24,28 +89,40 @@ app.post("/", async (c) => {
   }
 
   const gameData = apiGame.data;
+  const { playerIds, groupId: requestedGroupId, ...gameRest } = gameData;
 
-  db.insert(games).values(gameData).run();
-  R.forEach(gameData.playerIds, (playerId) => {
-    const { id: gameId, chipsPerPlayer } = gameData;
-    db.insert(gamePlayers)
-      .values({
-        gameId,
-        playerId,
-      })
-      .run();
+  if (requestedGroupId) {
+    const gRow = db.select().from(groups).where(eq(groups.id, requestedGroupId)).get();
+    if (!gRow) return c.json({ error: "Group not found" }, 404);
+  }
+
+  const groupId =
+    requestedGroupId ??
+    findGroupIdByExactRoster(playerIds) ??
+    createGroupWithRoster(playerIds);
+
+  db.insert(games).values({ ...gameRest, groupId }).run();
+
+  const gameDataResolved = { ...gameData, groupId };
+
+  R.forEach(playerIds, (playerId) => {
+    const { id: gameId, chipsPerPlayer } = gameDataResolved;
+    const groupMemberId = ensureGroupMemberId(groupId, playerId);
+    db.insert(gamePlayers).values({ gameId, groupMemberId }).run();
 
     db.insert(gamePlayerBuyIns)
       .values({
         gameId,
-        playerId,
+        groupMemberId,
         chips: chipsPerPlayer,
         isInitial: true,
       })
       .run();
   });
 
-  return c.json(gameData, 201);
+  const created = getGameWithPlayers(gameData.id);
+  if (!created) return c.json({ error: "Failed to load created game" }, 500);
+  return c.json(toGameResponse(created), 201);
 });
 
 app.get("/:id", (c) => {
@@ -77,8 +154,15 @@ app.patch("/:id/finalize", async (c) => {
   const { cashOut } = parsed.data;
 
   const participants = db
-    .select({ playerId: gamePlayers.playerId })
+    .select({
+      groupMemberId: gamePlayers.groupMemberId,
+      playerId: groupMembers.playerId,
+    })
     .from(gamePlayers)
+    .innerJoin(
+      groupMembers,
+      eq(gamePlayers.groupMemberId, groupMembers.id),
+    )
     .where(eq(gamePlayers.gameId, gameId))
     .all();
 
@@ -96,11 +180,14 @@ app.patch("/:id/finalize", async (c) => {
     );
   }
 
-  R.forEach(participants, ({ playerId }) => {
+  R.forEach(participants, ({ groupMemberId, playerId }) => {
     db.update(gamePlayers)
       .set({ cashOut: cashOut[playerId] })
       .where(
-        and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
+        and(
+          eq(gamePlayers.gameId, gameId),
+          eq(gamePlayers.groupMemberId, groupMemberId),
+        ),
       )
       .run();
   });
@@ -119,6 +206,7 @@ app.post("/:id/buy-ins", async (c) => {
       id: games.id,
       finished: games.finished,
       chipsPerPlayer: games.chipsPerPlayer,
+      groupId: games.groupId,
     })
     .from(games)
     .where(eq(games.id, gameId))
@@ -140,10 +228,17 @@ app.post("/:id/buy-ins", async (c) => {
   const { playerId, chips } = parsed.data;
 
   const participant = db
-    .select({ playerId: gamePlayers.playerId })
+    .select({ groupMemberId: gamePlayers.groupMemberId })
     .from(gamePlayers)
+    .innerJoin(
+      groupMembers,
+      eq(gamePlayers.groupMemberId, groupMembers.id),
+    )
     .where(
-      and(eq(gamePlayers.gameId, gameId), eq(gamePlayers.playerId, playerId)),
+      and(
+        eq(gamePlayers.gameId, gameId),
+        eq(groupMembers.playerId, playerId),
+      ),
     )
     .get();
 
@@ -159,7 +254,7 @@ app.post("/:id/buy-ins", async (c) => {
   db.insert(gamePlayerBuyIns)
     .values({
       gameId,
-      playerId,
+      groupMemberId: participant.groupMemberId,
       chips: buyInChips,
       isInitial: false,
     })
@@ -174,21 +269,29 @@ function getGameWithPlayers(gameId: string): ApiGameWithPlayers | null {
 
   const participants = db
     .select({
-      playerId: gamePlayers.playerId,
+      playerId: groupMembers.playerId,
       name: players.name,
       cashOut: gamePlayers.cashOut,
     })
     .from(gamePlayers)
-    .innerJoin(players, eq(players.id, gamePlayers.playerId))
+    .innerJoin(
+      groupMembers,
+      eq(gamePlayers.groupMemberId, groupMembers.id),
+    )
+    .innerJoin(players, eq(players.id, groupMembers.playerId))
     .where(eq(gamePlayers.gameId, gameId))
     .all();
 
   const buyInRows = db
     .select({
-      playerId: gamePlayerBuyIns.playerId,
+      playerId: groupMembers.playerId,
       chips: gamePlayerBuyIns.chips,
     })
     .from(gamePlayerBuyIns)
+    .innerJoin(
+      groupMembers,
+      eq(gamePlayerBuyIns.groupMemberId, groupMembers.id),
+    )
     .where(eq(gamePlayerBuyIns.gameId, gameId))
     .all();
 
@@ -224,6 +327,7 @@ function toGameResponse(g: ApiGameWithPlayers) {
     buyIn: g.buyIn,
     chipsPerPlayer: g.chipsPerPlayer,
     locationId: g.locationId,
+    groupId: g.groupId,
     finished: g.finished,
     players: R.map(g.players, (p) => ({
       id: p.id,

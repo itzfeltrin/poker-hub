@@ -20,12 +20,18 @@ export function getPlayerPnL(
 export function getPlayerGamesCount(
   games: ApiGameWithPlayers[] | undefined,
   playerId: string,
+  groupId?: string | null,
 ): number {
   if (!games) return 0;
 
   return R.pipe(
     games,
-    R.filter((g) => g.players.some((p) => p.id === playerId)),
+    R.filter((g) => {
+      if (groupId != null && groupId !== "" && g.groupId !== groupId) {
+        return false;
+      }
+      return g.players.some((p) => p.id === playerId);
+    }),
     R.length(),
   );
 }

@@ -1,14 +1,22 @@
 import { Link } from "@tanstack/react-router";
-import { useHistoryQuery, usePlayersQuery, useLocationsQuery } from "@/api/hooks";
+import {
+  useHistoryQuery,
+  usePlayersQuery,
+  useLocationsQuery,
+  useGroupsQuery,
+} from "@/api/hooks";
+import { useGroupScope } from "@/contexts/GroupContext";
 import { getPlayerById } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
 import { Container, Lockup } from "@poker-hub/design-system";
 
 export default function HistoryPage() {
-  const { data: games = [] } = useHistoryQuery();
+  const { selectedGroupId } = useGroupScope();
+  const { data: games = [] } = useHistoryQuery(selectedGroupId);
   const { data: players } = usePlayersQuery();
   const { data: locations = [] } = useLocationsQuery();
+  const { data: groups = [] } = useGroupsQuery();
 
   const getLocationName = (locationId: string | null | undefined) => {
     if (!locationId) return "Sem local";
@@ -53,6 +61,13 @@ export default function HistoryPage() {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formatDate(game.date)}
+                      {game.groupId && (
+                        <>
+                          {" · "}
+                          {groups.find((g) => g.id === game.groupId)?.name ??
+                            "Grupo"}
+                        </>
+                      )}
                     </p>
                   </div>
                   <span className="text-sm font-display font-semibold text-accent">

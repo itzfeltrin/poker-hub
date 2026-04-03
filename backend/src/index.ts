@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
 import players from "./routes/players";
 import locations from "./routes/locations";
+import groups from "./routes/groups";
 import games from "./routes/games";
 import history from "./routes/history";
 import profitLoss from "./routes/profit-loss";
@@ -20,6 +21,7 @@ if (!isProduction) {
         players: "/api/players",
         locations: "/api/locations",
         games: "/api/games",
+        groups: "/api/groups",
         history: "/api/history",
         profit_loss: "/api/profit-loss",
         docs: "/api/docs",
@@ -31,6 +33,7 @@ api.get("/doc", (c) => c.json(openApiDoc));
 api.get("/docs", swaggerUI({ url: "/api/doc" }));
 api.route("/players", players);
 api.route("/locations", locations);
+api.route("/groups", groups);
 api.route("/games", games);
 api.route("/history", history);
 api.route("/profit-loss", profitLoss);

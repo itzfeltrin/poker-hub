@@ -1,24 +1,47 @@
+import { useMemo } from "react";
 import {
   usePlayersQuery,
   useHistoryQuery,
   useProfitLossQuery,
+  useGroupsQuery,
+  useGroupMembersQuery,
 } from "@/api/hooks";
+import { useGroupScope } from "@/contexts/GroupContext";
 import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { motion } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
 import { Container, Lockup } from "@poker-hub/design-system";
+import * as R from "remeda";
 
 export default function StandingsPage() {
+  const { selectedGroupId } = useGroupScope();
   const { data: players = [] } = usePlayersQuery();
-  const { data: historyGames } = useHistoryQuery();
-  const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
+  const { data: groupMembers, isLoading: groupMembersLoading } =
+    useGroupMembersQuery(selectedGroupId ?? undefined);
+  const { data: historyGames } = useHistoryQuery(selectedGroupId);
+  const { data: profitLoss } = useProfitLossQuery({
+    period: "all_time",
+    groupId: selectedGroupId,
+  });
+  const { data: groups = [] } = useGroupsQuery();
+  const scopeLabel = selectedGroupId
+    ? (groups.find((g) => g.id === selectedGroupId)?.name ?? "Grupo")
+    : "todos os grupos";
 
-  const standings = players
+  const playersInScope = useMemo(() => {
+    if (!selectedGroupId) return players;
+    const memberIds = new Set(
+      R.map(groupMembers ?? [], (m) => m.playerId),
+    );
+    return R.pipe(players, R.filter((p) => memberIds.has(p.id)));
+  }, [players, selectedGroupId, groupMembers]);
+
+  const standings = playersInScope
     .map((p) => ({
       ...p,
       pnl: getPlayerPnL(profitLoss, p.id),
-      games: getPlayerGamesCount(historyGames, p.id),
+      games: getPlayerGamesCount(historyGames, p.id, selectedGroupId),
     }))
     .sort((a, b) => b.pnl - a.pnl);
 
@@ -29,9 +52,15 @@ export default function StandingsPage() {
       <Lockup>
         <Lockup.Title>Classificação</Lockup.Title>
         <Lockup.Subtitle>
-          Ranking de lucro e perda de todos os tempos.
+          {scopeLabel === "todos os grupos"
+            ? "Lucro e perda (todos os grupos), todos os tempos."
+            : `Lucro e perda no grupo «${scopeLabel}», todos os tempos.`}
         </Lockup.Subtitle>
       </Lockup>
+
+      {selectedGroupId && groupMembersLoading && (
+        <p className="text-muted-foreground py-6">Carregando elenco do grupo…</p>
+      )}
 
       <div className="space-y-3">
         {standings.map((player, i) => {

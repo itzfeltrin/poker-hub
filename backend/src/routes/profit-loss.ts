@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import * as R from "remeda";
+import z from "zod";
 import { db } from "../db";
 import {
   ApiProfitLossSchema,
   games,
   gamePlayerBuyIns,
   gamePlayers,
+  groupMembers,
   players,
   PeriodFilterSchema,
   type PeriodFilter,
@@ -65,8 +67,10 @@ app.get("/", (c) => {
     c.req.query("endDate") ?? c.req.query("end_date") ?? undefined,
   );
 
+  const groupFilterParsed = z.uuid().safeParse(c.req.query("groupId"));
+
   const finishedCondition = eq(games.finished, true);
-  const where =
+  const dateWhere =
     startDate && endDate
       ? and(
           finishedCondition,
@@ -76,6 +80,10 @@ app.get("/", (c) => {
       : startDate
         ? and(finishedCondition, gte(games.date, startDate))
         : finishedCondition;
+
+  const where = groupFilterParsed.success
+    ? and(dateWhere, eq(games.groupId, groupFilterParsed.data))
+    : dateWhere;
 
   const gameRows = db
     .select({
@@ -97,12 +105,16 @@ app.get("/", (c) => {
   for (const game of gameRows) {
     const participants = db
       .select({
-        playerId: gamePlayers.playerId,
+        playerId: groupMembers.playerId,
         name: players.name,
         cashOut: gamePlayers.cashOut,
       })
       .from(gamePlayers)
-      .innerJoin(players, eq(players.id, gamePlayers.playerId))
+      .innerJoin(
+        groupMembers,
+        eq(gamePlayers.groupMemberId, groupMembers.id),
+      )
+      .innerJoin(players, eq(players.id, groupMembers.playerId))
       .where(
         and(eq(gamePlayers.gameId, game.id), isNotNull(gamePlayers.cashOut)),
       )
@@ -113,10 +125,14 @@ app.get("/", (c) => {
 
     const buyInRows = db
       .select({
-        playerId: gamePlayerBuyIns.playerId,
+        playerId: groupMembers.playerId,
         chips: gamePlayerBuyIns.chips,
       })
       .from(gamePlayerBuyIns)
+      .innerJoin(
+        groupMembers,
+        eq(gamePlayerBuyIns.groupMemberId, groupMembers.id),
+      )
       .where(eq(gamePlayerBuyIns.gameId, game.id))
       .all();
 
@@ -162,6 +178,7 @@ app.get("/", (c) => {
     period,
     startDate: startDate ?? null,
     endDate: endDate ?? null,
+    groupId: groupFilterParsed.success ? groupFilterParsed.data : null,
     players: playersList,
   });
 

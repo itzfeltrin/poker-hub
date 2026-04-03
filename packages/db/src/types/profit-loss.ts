@@ -23,6 +23,7 @@ export const ApiProfitLossSchema = z.object({
   period: z.string(),
   startDate: z.string().nullable(),
   endDate: z.string().nullable(),
+  groupId: z.union([z.uuid(), z.null()]),
   players: z.array(ApiProfitLossPlayerSchema),
 });
 

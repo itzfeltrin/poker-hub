@@ -1,12 +1,15 @@
 import { Outlet, createRootRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { GroupScopeProvider } from "@/contexts/GroupContext";
 import NotFound from "@/pages/NotFound";
 
 function RootComponent() {
   return (
-    <AppLayout>
-      <Outlet />
-    </AppLayout>
+    <GroupScopeProvider>
+      <AppLayout>
+        <Outlet />
+      </AppLayout>
+    </GroupScopeProvider>
   );
 }
 

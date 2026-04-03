@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { ApiPlayer, ApiPlayerCreate } from "@/models/players/types";
+import type { ApiPlayer, ApiPlayerCreate } from "@poker-hub/db";
 
 const QUERY_KEYS = {
   players: ["players"] as const,

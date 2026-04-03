@@ -1,4 +1,10 @@
-import { usePlayersQuery, useCreateGameMutation } from "@/api/hooks";
+import {
+  usePlayersQuery,
+  useCreateGameMutation,
+  useGroupsQuery,
+  useGroupMembersQuery,
+} from "@/api/hooks";
+import { useGroupScope } from "@/contexts/GroupContext";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { LocationCombobox } from "@/components/LocationCombobox";
 import { useNavigate } from "@tanstack/react-router";
@@ -6,6 +12,9 @@ import { toast } from "sonner";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useRef } from "react";
+import type { ApiGameCreate } from "@poker-hub/db";
+import * as R from "remeda";
 import {
   Container,
   Lockup,
@@ -18,86 +27,109 @@ import {
 } from "@poker-hub/design-system";
 
 const formSchema = z.object({
-  date: z.coerce.date({
-    errorMap: (_issue, _ctx) => {
-      return { message: "Data inválida" };
-    },
-  }),
+  groupId: z.preprocess((val) => {
+    if (val === "" || val === undefined || val === null) return undefined;
+    if (typeof val === "string" && val.trim() === "") return undefined;
+    return val;
+  }, z.union([z.undefined(), z.string().uuid("Grupo inválido")])),
+  date: z.coerce.date(),
   locationId: z.string().nullable(),
   buyIn: z.number().min(0, "Entrada é obrigatória"),
   chipsPerPlayer: z.number().min(1, "Número de fichas é obrigatório"),
-  players: z.record(
-    z.string(),
-    z.object({
-      buyIn: z.number().min(0, "Entrada é obrigatória"),
-    }),
-  ),
+  playerIds: z
+    .array(z.string().uuid())
+    .min(1, "Selecione pelo menos um jogador"),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-const defaultValues: FormData = {
+const defaultValues = {
+  groupId: "",
   date: new Date(),
-  locationId: null,
+  locationId: null as string | null,
   buyIn: 0,
   chipsPerPlayer: 0,
-  players: {},
+  playerIds: [] as string[],
 };
 
 export default function NewGamePage() {
-  // --- API hooks ---
   const { data: players = [] } = usePlayersQuery();
+  const { data: groups = [] } = useGroupsQuery();
+  const { selectedGroupId } = useGroupScope();
   const createGameMut = useCreateGameMutation();
-
-  // --- Routing ---
   const navigate = useNavigate();
+  const lastAppliedGroupRef = useRef<string | null>(null);
 
-  // --- Form ---
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    getValues,
     control,
     formState: { errors },
-  } = useForm({
+  } = useForm<FormData>({
     defaultValues,
     resolver: zodResolver(formSchema),
     mode: "onChange",
   });
 
-  const formBuyIn = watch("buyIn");
-  const formPlayers = watch("players") ?? {};
+  useEffect(() => {
+    if (selectedGroupId) {
+      setValue("groupId", selectedGroupId);
+    }
+  }, [selectedGroupId, setValue]);
+
+  const rawGroupId = watch("groupId");
+  const formGroupId =
+    typeof rawGroupId === "string" && rawGroupId.trim() !== ""
+      ? rawGroupId.trim()
+      : undefined;
+
+  const { data: groupMembers = [] } = useGroupMembersQuery(formGroupId);
+
+  useEffect(() => {
+    if (!formGroupId) {
+      lastAppliedGroupRef.current = null;
+      return;
+    }
+    if (!groupMembers.length) return;
+    if (groupMembers.some((m) => m.groupId !== formGroupId)) return;
+    if (lastAppliedGroupRef.current === formGroupId) return;
+
+    setValue(
+      "playerIds",
+      R.pipe(groupMembers, R.map((m) => m.playerId)),
+    );
+    lastAppliedGroupRef.current = formGroupId;
+  }, [formGroupId, groupMembers, setValue]);
+
+  const selectedIds = watch("playerIds") ?? [];
 
   const togglePlayer = (id: string) => {
-    const current = watch("players") ?? {};
-    if (current[id]) {
-      const { [id]: _, ...rest } = current;
-      setValue("players", rest);
-    } else {
-      setValue("players", {
-        ...current,
-        [id]: { buyIn: formBuyIn },
-      });
-    }
+    const current = getValues("playerIds") ?? [];
+    setValue(
+      "playerIds",
+      current.includes(id)
+        ? R.filter(current, (x) => x !== id)
+        : [...current, id],
+    );
   };
 
   const onSubmit = async (data: FormData) => {
-    const players = Object.entries(data.players).map(
-      ([playerId, playerData]) => ({
-        playerId,
-        buyIn: playerData.buyIn,
-      }),
-    );
+    const payload: ApiGameCreate = {
+      buyIn: data.buyIn,
+      chipsPerPlayer: data.chipsPerPlayer,
+      playerIds: data.playerIds,
+      locationId: data.locationId ?? undefined,
+      date: data.date.toISOString(),
+    };
+    if (data.groupId) {
+      payload.groupId = data.groupId;
+    }
 
     try {
-      await createGameMut.mutateAsync({
-        buyIn: data.buyIn,
-        chipsPerPlayer: data.chipsPerPlayer,
-        playerIds: players.map((p) => p.playerId),
-        locationId: data.locationId,
-        date: data.date,
-      });
+      await createGameMut.mutateAsync(payload);
       toast.success("Partida registrada!");
       navigate({ to: "/history" });
     } catch {
@@ -113,6 +145,28 @@ export default function NewGamePage() {
       </Lockup>
 
       <Grid cols={2}>
+        <FormControl label="Grupo" className="md:col-span-2">
+          <select
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+            {...register("groupId")}
+            aria-invalid={!!errors.groupId}
+          >
+            <option value="">Automático (pelo elenco de jogadores)</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          {errors.groupId && (
+            <p className="text-sm text-destructive">{errors.groupId.message}</p>
+          )}
+          <p className="text-xs text-muted-foreground mt-1">
+            Se vazio, o sistema encontra ou cria um grupo com exatamente os
+            jogadores marcados. Ao escolher um grupo, os membros são
+            pré-selecionados.
+          </p>
+        </FormControl>
         <FormControl label="Data">
           <Input
             {...register("date", { valueAsDate: true })}
@@ -164,10 +218,17 @@ export default function NewGamePage() {
       </Grid>
 
       <div className="space-y-4">
-        <Label className="text-base">Jogadores</Label>
+        <div>
+          <Label className="text-base">Jogadores</Label>
+          {errors.playerIds && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.playerIds.message}
+            </p>
+          )}
+        </div>
         <div className="space-y-3">
           {players.map((player) => {
-            const selected = !!formPlayers[player.id];
+            const selected = selectedIds.includes(player.id);
             return (
               <div
                 key={player.id}
@@ -186,23 +247,6 @@ export default function NewGamePage() {
                   <PlayerAvatar name={player.name} size="sm" />
                   <span className="font-medium flex-1">{player.name}</span>
                 </div>
-                {selected && (
-                  <div className="mt-3 grid grid-cols-2 gap-3 pl-10">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        Entrada ($)
-                      </Label>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        className="bg-card"
-                        {...register(`players.${player.id}.buyIn`, {
-                          valueAsNumber: true,
-                        })}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -211,7 +255,7 @@ export default function NewGamePage() {
 
       <Button
         onClick={handleSubmit(onSubmit)}
-        className="w-full sm:w-auto"
+        className="w-full sm:w-auto mt-6"
         size="lg"
       >
         Salvar partida

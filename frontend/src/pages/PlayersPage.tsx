@@ -4,6 +4,7 @@ import {
   useHistoryQuery,
   useProfitLossQuery,
 } from "@/api/hooks";
+import { useGroupScope } from "@/contexts/GroupContext";
 import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Plus, Trash2 } from "lucide-react";
@@ -31,10 +32,13 @@ const defaultValues: FormData = {
 };
 
 export default function PlayersPage() {
-  // --- API hooks ---
+  const { selectedGroupId } = useGroupScope();
   const { data: players = [] } = usePlayersQuery();
-  const { data: historyGames } = useHistoryQuery();
-  const { data: profitLoss } = useProfitLossQuery({ period: "all_time" });
+  const { data: historyGames } = useHistoryQuery(selectedGroupId);
+  const { data: profitLoss } = useProfitLossQuery({
+    period: "all_time",
+    groupId: selectedGroupId,
+  });
   const createPlayerMut = useCreatePlayerMutation();
 
   // --- Form ---
@@ -93,7 +97,11 @@ export default function PlayersPage() {
         <AnimatePresence>
           {players.map((player) => {
             const pnl = getPlayerPnL(profitLoss, player.id);
-            const gamesCount = getPlayerGamesCount(historyGames, player.id);
+            const gamesCount = getPlayerGamesCount(
+              historyGames,
+              player.id,
+              selectedGroupId,
+            );
             return (
               <motion.div
                 key={player.id}

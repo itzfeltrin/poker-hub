@@ -11,13 +11,20 @@ import type {
 const QUERY_KEYS = {
   games: ["games"] as const,
   game: (id: string) => ["games", id] as const,
-  history: ["history"] as const,
+  history: (groupId?: string | null) =>
+    ["history", groupId ?? "all"] as const,
 };
 
-export function useHistoryQuery() {
+export function useHistoryQuery(groupId?: string | null) {
   return useQuery({
-    queryKey: QUERY_KEYS.history,
-    queryFn: () => api.get<ApiGameWithPlayers[]>("/history"),
+    queryKey: QUERY_KEYS.history(groupId),
+    queryFn: () => {
+      const q =
+        groupId !== undefined && groupId !== null && groupId !== ""
+          ? `?groupId=${encodeURIComponent(groupId)}`
+          : "";
+      return api.get<ApiGameWithPlayers[]>(`/history${q}`);
+    },
   });
 }
 
@@ -35,8 +42,9 @@ export function useCreateGameMutation() {
     mutationFn: (body: ApiGameCreate) =>
       api.post<ApiGameWithPlayers>("/games", body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.history });
+      qc.invalidateQueries({ queryKey: ["history"] });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.games });
+      qc.invalidateQueries({ queryKey: ["groups"] });
     },
   });
 }
@@ -47,7 +55,7 @@ export function useFinalizeGameMutation() {
     mutationFn: ({ gameId, body }: { gameId: string; body: ApiGameFinalize }) =>
       api.patch<ApiGameWithPlayers>(`/games/${gameId}/finalize`, body),
     onSuccess: (_, { gameId }) => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.history });
+      qc.invalidateQueries({ queryKey: ["history"] });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.game(gameId) });
       qc.invalidateQueries({ queryKey: ["profit-loss"] });
     },
@@ -66,7 +74,7 @@ export function useCreateBuyInMutation() {
     }) => api.post<{ ok: true }>(`/games/${gameId}/buy-ins`, body),
     onSuccess: (_, { gameId }) => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.game(gameId) });
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.history });
+      qc.invalidateQueries({ queryKey: ["history"] });
       qc.invalidateQueries({ queryKey: ["profit-loss"] });
     },
   });

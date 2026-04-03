@@ -4,6 +4,7 @@ import {
   real,
   sqliteTable,
   text,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 export const players = sqliteTable("players", {
@@ -16,6 +17,27 @@ export const locations = sqliteTable("locations", {
   name: text("name").notNull().unique(),
 });
 
+export const groups = sqliteTable("groups", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
+export const groupMembers = sqliteTable(
+  "group_members",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id),
+    playerId: text("player_id")
+      .notNull()
+      .references(() => players.id),
+  },
+  (t) => [
+    uniqueIndex("group_members_group_player_unique").on(t.groupId, t.playerId),
+  ],
+);
+
 export const games = sqliteTable("games", {
   id: text("id").primaryKey(),
   date: text("date").notNull(),
@@ -23,6 +45,9 @@ export const games = sqliteTable("games", {
   chipsPerPlayer: integer("chips_per_player").notNull(),
   finished: integer("finished", { mode: "boolean" }).notNull().default(false),
   locationId: text("location_id").references(() => locations.id),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id),
 });
 
 export const gamePlayers = sqliteTable(
@@ -31,12 +56,12 @@ export const gamePlayers = sqliteTable(
     gameId: text("game_id")
       .notNull()
       .references(() => games.id),
-    playerId: text("player_id")
+    groupMemberId: text("group_member_id")
       .notNull()
-      .references(() => players.id),
+      .references(() => groupMembers.id),
     cashOut: integer("cash_out"),
   },
-  (t) => [primaryKey({ columns: [t.gameId, t.playerId] })],
+  (t) => [primaryKey({ columns: [t.gameId, t.groupMemberId] })],
 );
 
 export const gamePlayerBuyIns = sqliteTable("game_player_buy_ins", {
@@ -44,9 +69,9 @@ export const gamePlayerBuyIns = sqliteTable("game_player_buy_ins", {
   gameId: text("game_id")
     .notNull()
     .references(() => games.id),
-  playerId: text("player_id")
+  groupMemberId: text("group_member_id")
     .notNull()
-    .references(() => players.id),
+    .references(() => groupMembers.id),
   chips: integer("chips").notNull(),
   isInitial: integer("is_initial", { mode: "boolean" })
     .notNull()
@@ -55,6 +80,8 @@ export const gamePlayerBuyIns = sqliteTable("game_player_buy_ins", {
 
 export type PlayerRow = (typeof players)["$inferSelect"];
 export type LocationRow = (typeof locations)["$inferSelect"];
+export type GroupRow = (typeof groups)["$inferSelect"];
+export type GroupMemberRow = (typeof groupMembers)["$inferSelect"];
 export type GameRow = (typeof games)["$inferSelect"];
 export type GamePlayerRow = (typeof gamePlayers)["$inferSelect"];
 export type GamePlayerBuyInRow = (typeof gamePlayerBuyIns)["$inferSelect"];
