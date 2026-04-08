@@ -72,14 +72,18 @@ CREATE TABLE `group_members` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `group_members_group_player_unique` ON `group_members` (`group_id`,`player_id`);
 --> statement-breakpoint
+-- One row per (group_id, player_id). DISTINCT on all columns was wrong: random `id` made every row unique.
 INSERT INTO `group_members` (`id`, `group_id`, `player_id`)
-SELECT DISTINCT
+SELECT
 	lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))),
-	m.`group_id`,
-	gp.`player_id`
-FROM `game_players` gp
-JOIN `_game_roster` gr ON gr.`game_id` = gp.`game_id`
-JOIN `_roster_group_map` m ON m.`roster_key` = gr.`roster_key`;
+	`group_id`,
+	`player_id`
+FROM (
+	SELECT DISTINCT m.`group_id`, gp.`player_id`
+	FROM `game_players` gp
+	JOIN `_game_roster` gr ON gr.`game_id` = gp.`game_id`
+	JOIN `_roster_group_map` m ON m.`roster_key` = gr.`roster_key`
+);
 --> statement-breakpoint
 ALTER TABLE `game_players` RENAME TO `game_players_old`;
 --> statement-breakpoint
