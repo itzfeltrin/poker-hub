@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   primaryKey,
   real,
@@ -78,6 +79,28 @@ export const gamePlayerBuyIns = sqliteTable("game_player_buy_ins", {
     .default(false),
 });
 
+/** Append-only ledger per group member; balance = sum(amount_cents). BRL stored as centavos (100 = R$1). */
+export const groupLedgerEntries = sqliteTable(
+  "group_ledger_entries",
+  {
+    id: text("id").primaryKey(),
+    groupMemberId: text("group_member_id")
+      .notNull()
+      .references(() => groupMembers.id),
+    /** Positive = player gained / is owed; negative = player lost / owes the group tab. */
+    amountCents: integer("amount_cents").notNull(),
+    /** `game` = resultado da partida; `payment` = pagamento/recebimento registrado fora do app; `manual` = ajuste. */
+    transactionType: text("transaction_type").notNull(),
+    gameId: text("game_id").references(() => games.id),
+    note: text("note"),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [
+    index("group_ledger_entries_group_member_idx").on(t.groupMemberId),
+    index("group_ledger_entries_game_idx").on(t.gameId),
+  ],
+);
+
 export type PlayerRow = (typeof players)["$inferSelect"];
 export type LocationRow = (typeof locations)["$inferSelect"];
 export type GroupRow = (typeof groups)["$inferSelect"];
@@ -85,3 +108,4 @@ export type GroupMemberRow = (typeof groupMembers)["$inferSelect"];
 export type GameRow = (typeof games)["$inferSelect"];
 export type GamePlayerRow = (typeof gamePlayers)["$inferSelect"];
 export type GamePlayerBuyInRow = (typeof gamePlayerBuyIns)["$inferSelect"];
+export type GroupLedgerEntryRow = (typeof groupLedgerEntries)["$inferSelect"];

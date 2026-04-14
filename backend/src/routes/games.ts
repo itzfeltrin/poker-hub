@@ -9,6 +9,7 @@ import {
   gamePlayerBuyIns,
   gamePlayers,
   games,
+  groupLedgerEntries,
   groupMembers,
   groups,
   players,
@@ -193,6 +194,9 @@ app.patch("/:id/finalize", async (c) => {
   });
 
   db.update(games).set({ finished: true }).where(eq(games.id, gameId)).run();
+
+  insertGameLedgerEntriesForFinalizedGame(gameId);
+
   const updated = getGameWithPlayers(gameId);
   if (!updated) return c.json({ error: "Failed to finalize" }, 500);
   return c.json(toGameResponse(updated));
@@ -318,6 +322,79 @@ function getGameWithPlayers(gameId: string): ApiGameWithPlayers | null {
     players: playerRows,
   });
   return parsed.success ? parsed.data : null;
+}
+
+/** Same money math as `profit-loss` for one finished game; writes one ledger row per member. */
+function insertGameLedgerEntriesForFinalizedGame(gameId: string): void {
+  const gameRow = db.select().from(games).where(eq(games.id, gameId)).get();
+  if (!gameRow) return;
+
+  const participants = db
+    .select({
+      groupMemberId: gamePlayers.groupMemberId,
+      playerId: groupMembers.playerId,
+      cashOut: gamePlayers.cashOut,
+    })
+    .from(gamePlayers)
+    .innerJoin(
+      groupMembers,
+      eq(gamePlayers.groupMemberId, groupMembers.id),
+    )
+    .where(eq(gamePlayers.gameId, gameId))
+    .all();
+
+  const totalChips = R.sumBy(participants, (p) => p.cashOut ?? 0);
+  if (totalChips === 0) return;
+
+  const buyInRows = db
+    .select({
+      playerId: groupMembers.playerId,
+      chips: gamePlayerBuyIns.chips,
+    })
+    .from(gamePlayerBuyIns)
+    .innerJoin(
+      groupMembers,
+      eq(gamePlayerBuyIns.groupMemberId, groupMembers.id),
+    )
+    .where(eq(gamePlayerBuyIns.gameId, gameId))
+    .all();
+
+  const buyInsByPlayer = R.groupBy(buyInRows, (b) => b.playerId);
+  const totalBuyInChips = R.sumBy(buyInRows, (b) => b.chips);
+
+  const totalPool =
+    gameRow.chipsPerPlayer > 0
+      ? (totalBuyInChips / gameRow.chipsPerPlayer) * gameRow.buyIn
+      : gameRow.buyIn * participants.length;
+
+  const createdAt = new Date().toISOString();
+
+  R.forEach(participants, (p) => {
+    const co = p.cashOut ?? 0;
+    const payout = (co / totalChips) * totalPool;
+    const playerBuyInChips = R.sumBy(
+      buyInsByPlayer[p.playerId] ?? [],
+      (b) => b.chips,
+    );
+    const totalIn =
+      gameRow.chipsPerPlayer > 0
+        ? (playerBuyInChips / gameRow.chipsPerPlayer) * gameRow.buyIn
+        : gameRow.buyIn;
+    const profitBrl = payout - totalIn;
+    const amountCents = Math.round(profitBrl * 100);
+
+    db.insert(groupLedgerEntries)
+      .values({
+        id: crypto.randomUUID(),
+        groupMemberId: p.groupMemberId,
+        amountCents,
+        transactionType: "game",
+        gameId,
+        note: null,
+        createdAt,
+      })
+      .run();
+  });
 }
 
 function toGameResponse(g: ApiGameWithPlayers) {

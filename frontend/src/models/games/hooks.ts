@@ -54,10 +54,13 @@ export function useFinalizeGameMutation() {
   return useMutation({
     mutationFn: ({ gameId, body }: { gameId: string; body: ApiGameFinalize }) =>
       api.patch<ApiGameWithPlayers>(`/games/${gameId}/finalize`, body),
-    onSuccess: (_, { gameId }) => {
+    onSuccess: (data, { gameId }) => {
       qc.invalidateQueries({ queryKey: ["history"] });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.game(gameId) });
       qc.invalidateQueries({ queryKey: ["profit-loss"] });
+      qc.invalidateQueries({
+        queryKey: ["groups", data.groupId, "ledger"],
+      });
     },
   });
 }

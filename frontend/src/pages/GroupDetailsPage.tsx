@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   useGroupQuery,
   useGroupsQuery,
@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, Wallet } from "lucide-react";
 import {
   Container,
   Lockup,
@@ -170,7 +170,13 @@ export default function GroupDetailsPage() {
           )}
         </FormControl>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex flex-wrap gap-3 justify-end">
+          <Button variant="secondary" type="button" asChild>
+            <Link to="/groups/$groupId/ledger" params={{ groupId }}>
+              <Wallet className="h-4 w-4 mr-2" />
+              Bolão / extrato
+            </Link>
+          </Button>
           <Button
             type="button"
             variant="destructive"

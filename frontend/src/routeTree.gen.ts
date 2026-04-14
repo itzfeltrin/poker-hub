@@ -21,6 +21,8 @@ import { Route as LocationsLocationIdRouteImport } from './routes/locations/$loc
 import { Route as GroupsNewRouteImport } from './routes/groups/new'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups/$groupId'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
+import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups/$groupId/index'
+import { Route as GroupsGroupIdLedgerRouteImport } from './routes/groups/$groupId/ledger'
 
 const StandingsRoute = StandingsRouteImport.update({
   id: '/standings',
@@ -82,6 +84,16 @@ const GamesGameIdRoute = GamesGameIdRouteImport.update({
   path: '/games/$gameId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsGroupIdIndexRoute = GroupsGroupIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GroupsGroupIdRoute,
+} as any)
+const GroupsGroupIdLedgerRoute = GroupsGroupIdLedgerRouteImport.update({
+  id: '/ledger',
+  path: '/ledger',
+  getParentRoute: () => GroupsGroupIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,12 +102,14 @@ export interface FileRoutesByFullPath {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
-  '/groups/$groupId': typeof GroupsGroupIdRoute
+  '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
   '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
+  '/groups/$groupId/ledger': typeof GroupsGroupIdLedgerRoute
+  '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -104,12 +118,13 @@ export interface FileRoutesByTo {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
-  '/groups/$groupId': typeof GroupsGroupIdRoute
   '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
   '/groups': typeof GroupsIndexRoute
   '/locations': typeof LocationsIndexRoute
+  '/groups/$groupId/ledger': typeof GroupsGroupIdLedgerRoute
+  '/groups/$groupId': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -119,12 +134,14 @@ export interface FileRoutesById {
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
-  '/groups/$groupId': typeof GroupsGroupIdRoute
+  '/groups/$groupId': typeof GroupsGroupIdRouteWithChildren
   '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
   '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
+  '/groups/$groupId/ledger': typeof GroupsGroupIdLedgerRoute
+  '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +158,8 @@ export interface FileRouteTypes {
     | '/locations/new'
     | '/groups/'
     | '/locations/'
+    | '/groups/$groupId/ledger'
+    | '/groups/$groupId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -149,12 +168,13 @@ export interface FileRouteTypes {
     | '/players'
     | '/standings'
     | '/games/$gameId'
-    | '/groups/$groupId'
     | '/groups/new'
     | '/locations/$locationId'
     | '/locations/new'
     | '/groups'
     | '/locations'
+    | '/groups/$groupId/ledger'
+    | '/groups/$groupId'
   id:
     | '__root__'
     | '/'
@@ -169,6 +189,8 @@ export interface FileRouteTypes {
     | '/locations/new'
     | '/groups/'
     | '/locations/'
+    | '/groups/$groupId/ledger'
+    | '/groups/$groupId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -178,7 +200,7 @@ export interface RootRouteChildren {
   PlayersRoute: typeof PlayersRoute
   StandingsRoute: typeof StandingsRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
-  GroupsGroupIdRoute: typeof GroupsGroupIdRoute
+  GroupsGroupIdRoute: typeof GroupsGroupIdRouteWithChildren
   GroupsNewRoute: typeof GroupsNewRoute
   LocationsLocationIdRoute: typeof LocationsLocationIdRoute
   LocationsNewRoute: typeof LocationsNewRoute
@@ -272,8 +294,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesGameIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/groups/$groupId/': {
+      id: '/groups/$groupId/'
+      path: '/'
+      fullPath: '/groups/$groupId/'
+      preLoaderRoute: typeof GroupsGroupIdIndexRouteImport
+      parentRoute: typeof GroupsGroupIdRoute
+    }
+    '/groups/$groupId/ledger': {
+      id: '/groups/$groupId/ledger'
+      path: '/ledger'
+      fullPath: '/groups/$groupId/ledger'
+      preLoaderRoute: typeof GroupsGroupIdLedgerRouteImport
+      parentRoute: typeof GroupsGroupIdRoute
+    }
   }
 }
+
+interface GroupsGroupIdRouteChildren {
+  GroupsGroupIdLedgerRoute: typeof GroupsGroupIdLedgerRoute
+  GroupsGroupIdIndexRoute: typeof GroupsGroupIdIndexRoute
+}
+
+const GroupsGroupIdRouteChildren: GroupsGroupIdRouteChildren = {
+  GroupsGroupIdLedgerRoute: GroupsGroupIdLedgerRoute,
+  GroupsGroupIdIndexRoute: GroupsGroupIdIndexRoute,
+}
+
+const GroupsGroupIdRouteWithChildren = GroupsGroupIdRoute._addFileChildren(
+  GroupsGroupIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -282,7 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlayersRoute: PlayersRoute,
   StandingsRoute: StandingsRoute,
   GamesGameIdRoute: GamesGameIdRoute,
-  GroupsGroupIdRoute: GroupsGroupIdRoute,
+  GroupsGroupIdRoute: GroupsGroupIdRouteWithChildren,
   GroupsNewRoute: GroupsNewRoute,
   LocationsLocationIdRoute: LocationsLocationIdRoute,
   LocationsNewRoute: LocationsNewRoute,

@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import GroupDetailsPage from "@/pages/GroupDetailsPage";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
+
+function GroupIdLayout() {
+  return <Outlet />;
+}
 
 export const Route = createFileRoute("/groups/$groupId")({
-  component: GroupDetailsPage,
+  component: GroupIdLayout,
 });
