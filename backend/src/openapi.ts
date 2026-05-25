@@ -183,6 +183,43 @@ export const openApiDoc = {
           },
         },
       },
+      delete: {
+        summary: "Soft-delete game",
+        description:
+          "Marks the game as deleted. It disappears from history, standings, profit/loss, and ledger; row data remains in the database.",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    ok: { type: "boolean", enum: [true] },
+                  },
+                  required: ["ok"],
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Game not found (or already deleted)",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
     },
     "/games/{id}/finalize": {
       patch: {

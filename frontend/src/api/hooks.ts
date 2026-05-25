@@ -18,6 +18,7 @@ export {
   useCreateGameMutation,
   useFinalizeGameMutation,
   useCreateBuyInMutation,
+  useDeleteGameMutation,
 } from "@/models/games/hooks";
 export {
   useGroupsQuery,

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNull, and } from "drizzle-orm";
 import { db } from "../db";
 import {
   ApiGameWithPlayersSchema,
@@ -21,10 +21,15 @@ app.get("/", (c) => {
     ? db
         .select()
         .from(games)
-        .where(eq(games.groupId, groupIdParsed.data))
+        .where(and(eq(games.groupId, groupIdParsed.data), isNull(games.deletedAt)))
         .orderBy(desc(games.date))
         .all()
-    : db.select().from(games).orderBy(desc(games.date)).all();
+    : db
+        .select()
+        .from(games)
+        .where(isNull(games.deletedAt))
+        .orderBy(desc(games.date))
+        .all();
 
   const rows = R.pipe(
     filteredGames,

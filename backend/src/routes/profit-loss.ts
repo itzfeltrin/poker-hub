@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, eq, gte, isNotNull, isNull, lte } from "drizzle-orm";
 import * as R from "remeda";
 import z from "zod";
 import { db } from "../db";
@@ -69,7 +69,7 @@ app.get("/", (c) => {
 
   const groupFilterParsed = z.uuid().safeParse(c.req.query("groupId"));
 
-  const finishedCondition = eq(games.finished, true);
+  const finishedCondition = and(eq(games.finished, true), isNull(games.deletedAt));
   const dateWhere =
     startDate && endDate
       ? and(

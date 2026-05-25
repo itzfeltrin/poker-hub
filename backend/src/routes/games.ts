@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 import {
   ApiGameSchema,
@@ -102,7 +102,7 @@ app.post("/", async (c) => {
     findGroupIdByExactRoster(playerIds) ??
     createGroupWithRoster(playerIds);
 
-  db.insert(games).values({ ...gameRest, groupId }).run();
+  db.insert(games).values({ ...gameRest, groupId, deletedAt: null }).run();
 
   const gameDataResolved = { ...gameData, groupId };
 
@@ -133,12 +133,30 @@ app.get("/:id", (c) => {
   return c.json(toGameResponse(game));
 });
 
+app.delete("/:id", (c) => {
+  const gameId = c.req.param("id");
+  const existing = db
+    .select({ deletedAt: games.deletedAt })
+    .from(games)
+    .where(eq(games.id, gameId))
+    .get();
+  if (!existing) return c.json({ error: "Game not found" }, 404);
+  if (existing.deletedAt) return c.json({ error: "Game not found" }, 404);
+
+  db.update(games)
+    .set({ deletedAt: new Date().toISOString() })
+    .where(eq(games.id, gameId))
+    .run();
+
+  return c.json({ ok: true as const });
+});
+
 app.patch("/:id/finalize", async (c) => {
   const gameId = c.req.param("id");
   const gameRow = db
     .select({ finished: games.finished })
     .from(games)
-    .where(eq(games.id, gameId))
+    .where(and(eq(games.id, gameId), isNull(games.deletedAt)))
     .get();
   if (!gameRow) return c.json({ error: "Game not found" }, 404);
   if (gameRow.finished)
@@ -213,7 +231,7 @@ app.post("/:id/buy-ins", async (c) => {
       groupId: games.groupId,
     })
     .from(games)
-    .where(eq(games.id, gameId))
+    .where(and(eq(games.id, gameId), isNull(games.deletedAt)))
     .get();
 
   if (!gameRow) return c.json({ error: "Game not found" }, 404);
@@ -268,7 +286,11 @@ app.post("/:id/buy-ins", async (c) => {
 });
 
 function getGameWithPlayers(gameId: string): ApiGameWithPlayers | null {
-  const gameRow = db.select().from(games).where(eq(games.id, gameId)).get();
+  const gameRow = db
+    .select()
+    .from(games)
+    .where(and(eq(games.id, gameId), isNull(games.deletedAt)))
+    .get();
   if (!gameRow) return null;
 
   const participants = db

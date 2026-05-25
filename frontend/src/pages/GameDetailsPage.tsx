@@ -1,11 +1,25 @@
 import { useState } from "react";
-import { Link, useParams } from "@tanstack/react-router";
-import { useCreateBuyInMutation, useGameQuery } from "@/models/games/hooks";
+import { Link, useParams, useNavigate } from "@tanstack/react-router";
+import {
+  useCreateBuyInMutation,
+  useDeleteGameMutation,
+  useGameQuery,
+} from "@/models/games/hooks";
 import { useLocationsQuery, useGroupsQuery } from "@/api/hooks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { ArrowLeft, CheckCircle, PlusCircle, Banknote } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlusCircle, Banknote, Trash2 } from "lucide-react";
 import { Button } from "@poker-hub/design-system";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { FinalizeGameDialog } from "@/components/FinalizeGameDialog";
 import { SettlementDialog } from "@/components/SettlementDialog";
 import { toast } from "sonner";
@@ -25,12 +39,15 @@ function seatPosition(
 
 export default function GameDetailsPage() {
   const { gameId } = useParams({ from: "/games/$gameId" });
+  const navigate = useNavigate();
   const { data: game, isLoading, error } = useGameQuery(gameId);
   const { data: locations = [] } = useLocationsQuery();
   const { data: groups = [] } = useGroupsQuery();
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [settlementOpen, setSettlementOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const createBuyInMut = useCreateBuyInMutation();
+  const deleteGameMut = useDeleteGameMutation();
 
   const locationName = game?.locationId
     ? locations.find((l) => l.id === game.locationId)?.name ?? "—"
@@ -73,6 +90,18 @@ export default function GameDetailsPage() {
   const radiusX = 42;
   const radiusY = 38;
 
+  const handleDeleteGame = async () => {
+    if (!gameId || !game) return;
+    try {
+      await deleteGameMut.mutateAsync({ gameId, groupId: game.groupId });
+      toast.success("Partida removida do histórico e dos saldos.");
+      navigate({ to: "/history" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir partida");
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-24 md:pb-8">
       <div className="flex items-center justify-between gap-2 md:gap-4">
@@ -87,16 +116,26 @@ export default function GameDetailsPage() {
             <span className="text-xs md:text-sm">Histórico</span>
           </Link>
         </Button>
-        <div className="text-right">
-          <p className="text-xs text-muted-foreground md:text-sm">
-            {formatDate(game.date)}
-          </p>
-          <p className="font-display text-sm font-semibold md:text-base">
-            {locationName}
-          </p>
-          <p className="text-xs text-muted-foreground md:text-sm">
-            {groupName}
-          </p>
+        <div className="flex items-start gap-2">
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="shrink-0 h-8 md:h-9"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span className="ml-1.5 hidden sm:inline text-xs md:text-sm">Excluir</span>
+          </Button>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground md:text-sm">
+              {formatDate(game.date)}
+            </p>
+            <p className="font-display text-sm font-semibold md:text-base">
+              {locationName}
+            </p>
+            <p className="text-xs text-muted-foreground md:text-sm">{groupName}</p>
+          </div>
         </div>
       </div>
 
@@ -276,6 +315,31 @@ export default function GameDetailsPage() {
           game={game}
         />
       )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir partida</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta partida deixa de contar para o histórico, ranking, resultados financeiros e saldos da
+              carteira do grupo ({groupName}). O registro permanece apenas no banco de dados (exclusão
+              lógica); não há restaurar pela interface no momento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void handleDeleteGame();
+              }}
+              disabled={deleteGameMut.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteGameMut.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

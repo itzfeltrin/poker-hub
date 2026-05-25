@@ -64,6 +64,13 @@
       "when": 1775000000000,
       "tag": "0008_group_ledger_entries",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1779736401019,
+      "tag": "0009_perpetual_nighthawk",
+      "breakpoints": true
     }
   ]
 }

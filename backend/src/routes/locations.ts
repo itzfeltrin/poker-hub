@@ -3,7 +3,7 @@ import * as R from "remeda";
 import { db } from "../db";
 import { ApiLocationSchema, locations, games } from "@poker-hub/db";
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 const app = new Hono();
 
@@ -15,7 +15,10 @@ app.get("/", (c) => {
       gameCount: sql<number>`count(${games.id})`.as("gameCount"),
     })
     .from(locations)
-    .leftJoin(games, eq(games.locationId, locations.id))
+    .leftJoin(
+      games,
+      and(eq(games.locationId, locations.id), isNull(games.deletedAt)),
+    )
     .groupBy(locations.id)
     .orderBy(locations.name)
     .all();
@@ -96,7 +99,7 @@ app.delete("/:id", (c) => {
   const gamesUsingLocation = db
     .select()
     .from(games)
-    .where(eq(games.locationId, id))
+    .where(and(eq(games.locationId, id), isNull(games.deletedAt)))
     .get();
 
   if (gamesUsingLocation) {

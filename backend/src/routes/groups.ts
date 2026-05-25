@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql, isNull, isNotNull } from "drizzle-orm";
 import { db } from "../db";
 import {
   ApiGroupCreateSchema,
@@ -33,7 +33,10 @@ app.get("/", (c) => {
       gameCount: sql<number>`count(${games.id})`.as("gameCount"),
     })
     .from(groups)
-    .leftJoin(games, eq(games.groupId, groups.id))
+    .leftJoin(
+      games,
+      and(eq(games.groupId, groups.id), isNull(games.deletedAt)),
+    )
     .groupBy(groups.id)
     .orderBy(groups.name)
     .all();
@@ -166,9 +169,13 @@ app.get("/:groupId/ledger", (c) => {
       playerId: players.id,
       playerName: players.name,
       balanceCents:
-        sql<number>`coalesce(sum(${groupLedgerEntries.amountCents}), 0)`.as(
-          "balanceCents",
-        ),
+        sql<number>`coalesce(sum(
+          CASE
+            WHEN ${groupLedgerEntries.gameId} IS NULL THEN ${groupLedgerEntries.amountCents}
+            WHEN ${games.id} IS NOT NULL AND ${games.deletedAt} IS NULL THEN ${groupLedgerEntries.amountCents}
+            ELSE 0
+          END
+        ), 0)`.as("balanceCents"),
     })
     .from(groupMembers)
     .innerJoin(players, eq(players.id, groupMembers.playerId))
@@ -176,6 +183,7 @@ app.get("/:groupId/ledger", (c) => {
       groupLedgerEntries,
       eq(groupLedgerEntries.groupMemberId, groupMembers.id),
     )
+    .leftJoin(games, eq(groupLedgerEntries.gameId, games.id))
     .where(eq(groupMembers.groupId, groupId))
     .groupBy(groupMembers.id, players.id, players.name)
     .orderBy(players.name)
@@ -199,7 +207,16 @@ app.get("/:groupId/ledger", (c) => {
       eq(groupLedgerEntries.groupMemberId, groupMembers.id),
     )
     .innerJoin(players, eq(groupMembers.playerId, players.id))
-    .where(eq(groupMembers.groupId, groupId))
+    .leftJoin(games, eq(groupLedgerEntries.gameId, games.id))
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        or(
+          isNull(groupLedgerEntries.gameId),
+          and(isNotNull(games.id), isNull(games.deletedAt)),
+        ),
+      ),
+    )
     .orderBy(desc(groupLedgerEntries.createdAt))
     .all();
 
@@ -338,7 +355,11 @@ app.delete("/:id", (c) => {
   const existing = db.select().from(groups).where(eq(groups.id, id)).get();
   if (!existing) return c.json({ error: "Group not found" }, 404);
 
-  const gamesUsing = db.select().from(games).where(eq(games.groupId, id)).get();
+  const gamesUsing = db
+    .select()
+    .from(games)
+    .where(and(eq(games.groupId, id), isNull(games.deletedAt)))
+    .get();
   if (gamesUsing) {
     return c.json({ error: "Cannot delete group that has games" }, 409);
   }

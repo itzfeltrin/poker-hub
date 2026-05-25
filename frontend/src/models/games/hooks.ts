@@ -82,3 +82,26 @@ export function useCreateBuyInMutation() {
     },
   });
 }
+
+export function useDeleteGameMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      gameId,
+    }: {
+      gameId: string;
+      /** Used only for ledger cache invalidation in `onSuccess`. */
+      groupId?: string | null;
+    }) => api.delete<{ ok: true }>(`/games/${gameId}`),
+    onSuccess: (_data, { gameId, groupId }) => {
+      qc.removeQueries({ queryKey: QUERY_KEYS.game(gameId) });
+      qc.invalidateQueries({ queryKey: ["history"] });
+      qc.invalidateQueries({ queryKey: ["profit-loss"] });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["locations"] });
+      if (groupId) {
+        qc.invalidateQueries({ queryKey: ["groups", groupId, "ledger"] });
+      }
+    },
+  });
+}

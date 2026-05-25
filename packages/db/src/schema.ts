@@ -49,6 +49,8 @@ export const games = sqliteTable("games", {
   groupId: text("group_id")
     .notNull()
     .references(() => groups.id),
+  /** ISO 8601; when set the game is soft-deleted and excluded from aggregates and ledger totals. */
+  deletedAt: text("deleted_at"),
 });
 
 export const gamePlayers = sqliteTable(
