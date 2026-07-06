@@ -1,10 +1,12 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
-  useGroupLedgerQuery,
+  useLedgerQuery,
   useCreateLedgerEntryMutation,
   useGroupMembersQuery,
   useGroupQuery,
+  useGroupsQuery,
 } from "@/api/hooks";
+import { useGroupScope } from "@/contexts/GroupContext";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -75,13 +77,21 @@ function balanceLabel(balanceCents: number): string {
   return "zerado";
 }
 
-export default function GroupLedgerPage() {
-  const { groupId } = useParams({ from: "/groups/$groupId/ledger" });
-  const { data: group, isLoading: groupLoading } = useGroupQuery(groupId);
+export default function LedgerPage() {
+  const { selectedGroupId } = useGroupScope();
+  const { data: groups = [] } = useGroupsQuery();
+  const { data: group, isLoading: groupLoading } =
+    useGroupQuery(selectedGroupId ?? undefined);
   const { data: snapshot, isLoading: ledgerLoading } =
-    useGroupLedgerQuery(groupId);
-  const { data: members = [] } = useGroupMembersQuery(groupId);
-  const createMut = useCreateLedgerEntryMutation(groupId);
+    useLedgerQuery(selectedGroupId);
+  const { data: members = [] } = useGroupMembersQuery(
+    selectedGroupId ?? undefined,
+  );
+  const createMut = useCreateLedgerEntryMutation(selectedGroupId ?? "");
+
+  const scopeLabel = selectedGroupId
+    ? (group?.name ?? groups.find((g) => g.id === selectedGroupId)?.name ?? "Grupo")
+    : "todos os grupos";
 
   const balanceByMemberId = useMemo(
     () => R.indexBy(snapshot?.balances ?? [], (b) => b.groupMemberId),
@@ -116,6 +126,8 @@ export default function GroupLedgerPage() {
   }, [balanceByMemberId, payerGroupMemberId, recipientGroupMemberId]);
 
   const onSubmitPayment = handleSubmit(async (raw) => {
+    if (!selectedGroupId) return;
+
     const data = paymentFormSchema.parse(raw);
     const payer = balanceByMemberId[data.payerGroupMemberId];
     const recipient = balanceByMemberId[data.recipientGroupMemberId];
@@ -164,7 +176,7 @@ export default function GroupLedgerPage() {
     }
   });
 
-  if (groupLoading || !group) {
+  if (selectedGroupId && (groupLoading || !group)) {
     return (
       <Container size="md">
         <p className="text-muted-foreground">Carregando…</p>
@@ -176,10 +188,17 @@ export default function GroupLedgerPage() {
     <Container size="md">
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2">
-          <Link to="/groups/$groupId" params={{ groupId }}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar ao grupo
-          </Link>
+          {selectedGroupId ? (
+            <Link to="/groups/$groupId" params={{ groupId: selectedGroupId }}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar ao grupo
+            </Link>
+          ) : (
+            <Link to="/groups">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar aos grupos
+            </Link>
+          )}
         </Button>
         <Lockup>
           <div className="flex items-center gap-2">
@@ -187,8 +206,8 @@ export default function GroupLedgerPage() {
             <Lockup.Title>Bolão</Lockup.Title>
           </div>
           <Lockup.Subtitle>
-            Saldos e lançamentos do grupo «{group.name}». Pagamentos são só
-            registro — o dinheiro é combinado fora do app.
+            Saldos e lançamentos de {scopeLabel}. Pagamentos são só registro — o
+            dinheiro é combinado fora do app.
           </Lockup.Subtitle>
         </Lockup>
       </div>
@@ -200,7 +219,9 @@ export default function GroupLedgerPage() {
         )}
         {!ledgerLoading && snapshot && snapshot.balances.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nenhum membro no grupo.
+            {selectedGroupId
+              ? "Nenhum membro no grupo."
+              : "Nenhum membro em nenhum grupo."}
           </p>
         )}
         <ul className="space-y-2">
@@ -211,7 +232,16 @@ export default function GroupLedgerPage() {
             >
               <div className="flex items-center gap-3 min-w-0">
                 <PlayerAvatar name={b.playerName} size="sm" />
-                <span className="font-medium truncate">{b.playerName}</span>
+                <div className="min-w-0">
+                  <span className="font-medium truncate block">
+                    {b.playerName}
+                  </span>
+                  {"groupName" in b && (
+                    <span className="text-xs text-muted-foreground truncate block">
+                      {b.groupName}
+                    </span>
+                  )}
+                </div>
               </div>
               <span
                 className={`font-display font-semibold tabular-nums shrink-0 ${
@@ -229,103 +259,109 @@ export default function GroupLedgerPage() {
         </ul>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-5 space-y-4 mb-10">
-        <h2 className="text-lg font-display font-semibold">
-          Registrar pagamento
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Registre um pagamento entre dois jogadores. O valor reduz a dívida de
-          quem pagou e o crédito de quem recebeu. O máximo é o menor entre o que
-          quem paga deve e o que quem recebe tem a receber.
+      {selectedGroupId ? (
+        <section className="rounded-xl border border-border bg-card p-5 space-y-4 mb-10">
+          <h2 className="text-lg font-display font-semibold">
+            Registrar pagamento
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Registre um pagamento entre dois jogadores. O valor reduz a dívida de
+            quem pagou e o crédito de quem recebeu. O máximo é o menor entre o
+            que quem paga deve e o que quem recebe tem a receber.
+          </p>
+          <form onSubmit={onSubmitPayment} className="space-y-4 max-w-md">
+            <FormControl label="Quem pagou">
+              <select
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                {...register("payerGroupMemberId")}
+                aria-invalid={!!errors.payerGroupMemberId}
+              >
+                <option value="">Selecione…</option>
+                {members.map((m) => {
+                  const balance = balanceByMemberId[m.id]?.balanceCents ?? 0;
+                  const canPay = balance < 0;
+                  return (
+                    <option key={m.id} value={m.id} disabled={!canPay}>
+                      {m.name} ({balanceLabel(balance)})
+                    </option>
+                  );
+                })}
+              </select>
+              {errors.payerGroupMemberId && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.payerGroupMemberId.message}
+                </p>
+              )}
+            </FormControl>
+            <FormControl label="Quem recebeu">
+              <select
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                {...register("recipientGroupMemberId")}
+                aria-invalid={!!errors.recipientGroupMemberId}
+              >
+                <option value="">Selecione…</option>
+                {members.map((m) => {
+                  const balance = balanceByMemberId[m.id]?.balanceCents ?? 0;
+                  const canReceive = balance > 0;
+                  const isPayer = m.id === payerGroupMemberId;
+                  return (
+                    <option
+                      key={m.id}
+                      value={m.id}
+                      disabled={!canReceive || isPayer}
+                    >
+                      {m.name} ({balanceLabel(balance)})
+                    </option>
+                  );
+                })}
+              </select>
+              {errors.recipientGroupMemberId && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.recipientGroupMemberId.message}
+                </p>
+              )}
+            </FormControl>
+            <FormControl label="Valor pago (R$)">
+              <Input
+                inputMode="decimal"
+                placeholder="0,00"
+                className="bg-background"
+                {...register("amountBrl")}
+                aria-invalid={!!errors.amountBrl}
+              />
+              {maxPaymentCents > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Máximo: {formatPnl(centsToBrl(maxPaymentCents))}
+                </p>
+              )}
+              {errors.amountBrl && (
+                <p className="text-sm text-destructive mt-1">
+                  {String(errors.amountBrl.message)}
+                </p>
+              )}
+            </FormControl>
+            <FormControl label="Nota (opcional)">
+              <Input
+                placeholder="ex.: PIX"
+                className="bg-background"
+                {...register("note")}
+              />
+            </FormControl>
+            <Button
+              type="submit"
+              disabled={
+                isSubmitting || createMut.isPending || maxPaymentCents === 0
+              }
+            >
+              {createMut.isPending ? "Salvando…" : "Registrar pagamento"}
+            </Button>
+          </form>
+        </section>
+      ) : (
+        <p className="text-sm text-muted-foreground mb-10 rounded-xl border border-border bg-card/50 px-4 py-3">
+          Selecione um grupo no menu para registrar pagamentos.
         </p>
-        <form onSubmit={onSubmitPayment} className="space-y-4 max-w-md">
-          <FormControl label="Quem pagou">
-            <select
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              {...register("payerGroupMemberId")}
-              aria-invalid={!!errors.payerGroupMemberId}
-            >
-              <option value="">Selecione…</option>
-              {members.map((m) => {
-                const balance = balanceByMemberId[m.id]?.balanceCents ?? 0;
-                const canPay = balance < 0;
-                return (
-                  <option key={m.id} value={m.id} disabled={!canPay}>
-                    {m.name} ({balanceLabel(balance)})
-                  </option>
-                );
-              })}
-            </select>
-            {errors.payerGroupMemberId && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.payerGroupMemberId.message}
-              </p>
-            )}
-          </FormControl>
-          <FormControl label="Quem recebeu">
-            <select
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              {...register("recipientGroupMemberId")}
-              aria-invalid={!!errors.recipientGroupMemberId}
-            >
-              <option value="">Selecione…</option>
-              {members.map((m) => {
-                const balance = balanceByMemberId[m.id]?.balanceCents ?? 0;
-                const canReceive = balance > 0;
-                const isPayer = m.id === payerGroupMemberId;
-                return (
-                  <option
-                    key={m.id}
-                    value={m.id}
-                    disabled={!canReceive || isPayer}
-                  >
-                    {m.name} ({balanceLabel(balance)})
-                  </option>
-                );
-              })}
-            </select>
-            {errors.recipientGroupMemberId && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.recipientGroupMemberId.message}
-              </p>
-            )}
-          </FormControl>
-          <FormControl label="Valor pago (R$)">
-            <Input
-              inputMode="decimal"
-              placeholder="0,00"
-              className="bg-background"
-              {...register("amountBrl")}
-              aria-invalid={!!errors.amountBrl}
-            />
-            {maxPaymentCents > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Máximo: {formatPnl(centsToBrl(maxPaymentCents))}
-              </p>
-            )}
-            {errors.amountBrl && (
-              <p className="text-sm text-destructive mt-1">
-                {String(errors.amountBrl.message)}
-              </p>
-            )}
-          </FormControl>
-          <FormControl label="Nota (opcional)">
-            <Input
-              placeholder="ex.: PIX"
-              className="bg-background"
-              {...register("note")}
-            />
-          </FormControl>
-          <Button
-            type="submit"
-            disabled={
-              isSubmitting || createMut.isPending || maxPaymentCents === 0
-            }
-          >
-            {createMut.isPending ? "Salvando…" : "Registrar pagamento"}
-          </Button>
-        </form>
-      </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-lg font-display font-semibold">Extrato</h2>
@@ -352,6 +388,11 @@ export default function GroupLedgerPage() {
                         {meta.label}
                       </span>
                     </div>
+                    {"groupName" in e && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {e.groupName}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       {format(new Date(e.createdAt), "PPp", { locale: ptBR })}
                     </p>

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StandingsRouteImport } from './routes/standings'
 import { Route as PlayersRouteImport } from './routes/players'
 import { Route as NewGameRouteImport } from './routes/new-game'
+import { Route as LedgerRouteImport } from './routes/ledger'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LocationsIndexRouteImport } from './routes/locations/index'
@@ -22,7 +23,6 @@ import { Route as GroupsNewRouteImport } from './routes/groups/new'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups/$groupId'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 import { Route as GroupsGroupIdIndexRouteImport } from './routes/groups/$groupId/index'
-import { Route as GroupsGroupIdLedgerRouteImport } from './routes/groups/$groupId/ledger'
 
 const StandingsRoute = StandingsRouteImport.update({
   id: '/standings',
@@ -37,6 +37,11 @@ const PlayersRoute = PlayersRouteImport.update({
 const NewGameRoute = NewGameRouteImport.update({
   id: '/new-game',
   path: '/new-game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LedgerRoute = LedgerRouteImport.update({
+  id: '/ledger',
+  path: '/ledger',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -89,15 +94,11 @@ const GroupsGroupIdIndexRoute = GroupsGroupIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GroupsGroupIdRoute,
 } as any)
-const GroupsGroupIdLedgerRoute = GroupsGroupIdLedgerRouteImport.update({
-  id: '/ledger',
-  path: '/ledger',
-  getParentRoute: () => GroupsGroupIdRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
+  '/ledger': typeof LedgerRoute
   '/new-game': typeof NewGameRoute
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
@@ -108,12 +109,12 @@ export interface FileRoutesByFullPath {
   '/locations/new': typeof LocationsNewRoute
   '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
-  '/groups/$groupId/ledger': typeof GroupsGroupIdLedgerRoute
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
+  '/ledger': typeof LedgerRoute
   '/new-game': typeof NewGameRoute
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
@@ -123,13 +124,13 @@ export interface FileRoutesByTo {
   '/locations/new': typeof LocationsNewRoute
   '/groups': typeof GroupsIndexRoute
   '/locations': typeof LocationsIndexRoute
-  '/groups/$groupId/ledger': typeof GroupsGroupIdLedgerRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
+  '/ledger': typeof LedgerRoute
   '/new-game': typeof NewGameRoute
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
@@ -140,7 +141,6 @@ export interface FileRoutesById {
   '/locations/new': typeof LocationsNewRoute
   '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
-  '/groups/$groupId/ledger': typeof GroupsGroupIdLedgerRoute
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -148,6 +148,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/history'
+    | '/ledger'
     | '/new-game'
     | '/players'
     | '/standings'
@@ -158,12 +159,12 @@ export interface FileRouteTypes {
     | '/locations/new'
     | '/groups/'
     | '/locations/'
-    | '/groups/$groupId/ledger'
     | '/groups/$groupId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/history'
+    | '/ledger'
     | '/new-game'
     | '/players'
     | '/standings'
@@ -173,12 +174,12 @@ export interface FileRouteTypes {
     | '/locations/new'
     | '/groups'
     | '/locations'
-    | '/groups/$groupId/ledger'
     | '/groups/$groupId'
   id:
     | '__root__'
     | '/'
     | '/history'
+    | '/ledger'
     | '/new-game'
     | '/players'
     | '/standings'
@@ -189,13 +190,13 @@ export interface FileRouteTypes {
     | '/locations/new'
     | '/groups/'
     | '/locations/'
-    | '/groups/$groupId/ledger'
     | '/groups/$groupId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoryRoute: typeof HistoryRoute
+  LedgerRoute: typeof LedgerRoute
   NewGameRoute: typeof NewGameRoute
   PlayersRoute: typeof PlayersRoute
   StandingsRoute: typeof StandingsRoute
@@ -229,6 +230,13 @@ declare module '@tanstack/react-router' {
       path: '/new-game'
       fullPath: '/new-game'
       preLoaderRoute: typeof NewGameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ledger': {
+      id: '/ledger'
+      path: '/ledger'
+      fullPath: '/ledger'
+      preLoaderRoute: typeof LedgerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -301,23 +309,14 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsGroupIdIndexRouteImport
       parentRoute: typeof GroupsGroupIdRoute
     }
-    '/groups/$groupId/ledger': {
-      id: '/groups/$groupId/ledger'
-      path: '/ledger'
-      fullPath: '/groups/$groupId/ledger'
-      preLoaderRoute: typeof GroupsGroupIdLedgerRouteImport
-      parentRoute: typeof GroupsGroupIdRoute
-    }
   }
 }
 
 interface GroupsGroupIdRouteChildren {
-  GroupsGroupIdLedgerRoute: typeof GroupsGroupIdLedgerRoute
   GroupsGroupIdIndexRoute: typeof GroupsGroupIdIndexRoute
 }
 
 const GroupsGroupIdRouteChildren: GroupsGroupIdRouteChildren = {
-  GroupsGroupIdLedgerRoute: GroupsGroupIdLedgerRoute,
   GroupsGroupIdIndexRoute: GroupsGroupIdIndexRoute,
 }
 
@@ -328,6 +327,7 @@ const GroupsGroupIdRouteWithChildren = GroupsGroupIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
+  LedgerRoute: LedgerRoute,
   NewGameRoute: NewGameRoute,
   PlayersRoute: PlayersRoute,
   StandingsRoute: StandingsRoute,

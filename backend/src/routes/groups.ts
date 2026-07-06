@@ -7,7 +7,10 @@ import {
   ApiGroupLedgerEntryWithPlayerSchema,
   ApiGroupLedgerManualCreateSchema,
   ApiGroupLedgerSnapshotSchema,
+  ApiAllGroupsLedgerSnapshotSchema,
   ApiGroupMemberBalanceSchema,
+  ApiGroupMemberBalanceWithGroupSchema,
+  ApiGroupLedgerEntryWithPlayerAndGroupSchema,
   ApiGroupMemberSchema,
   ApiGroupPatchSchema,
   ApiGroupSchema,
@@ -209,6 +212,102 @@ app.post("/:groupId/members", async (c) => {
     }),
     201,
   );
+});
+
+app.get("/ledger", (c) => {
+  const balanceRows = db
+    .select({
+      groupMemberId: groupMembers.id,
+      groupId: groups.id,
+      groupName: groups.name,
+      playerId: players.id,
+      playerName: players.name,
+      balanceCents: memberBalanceCentsSql.as("balanceCents"),
+    })
+    .from(groupMembers)
+    .innerJoin(groups, eq(groups.id, groupMembers.groupId))
+    .innerJoin(players, eq(players.id, groupMembers.playerId))
+    .leftJoin(
+      groupLedgerEntries,
+      eq(groupLedgerEntries.groupMemberId, groupMembers.id),
+    )
+    .leftJoin(games, eq(groupLedgerEntries.gameId, games.id))
+    .groupBy(
+      groupMembers.id,
+      groups.id,
+      groups.name,
+      players.id,
+      players.name,
+    )
+    .orderBy(groups.name, players.name)
+    .all();
+
+  const entryRows = db
+    .select({
+      id: groupLedgerEntries.id,
+      groupMemberId: groupLedgerEntries.groupMemberId,
+      groupId: groups.id,
+      groupName: groups.name,
+      amountCents: groupLedgerEntries.amountCents,
+      transactionType: groupLedgerEntries.transactionType,
+      gameId: groupLedgerEntries.gameId,
+      note: groupLedgerEntries.note,
+      createdAt: groupLedgerEntries.createdAt,
+      playerName: players.name,
+      playerId: players.id,
+    })
+    .from(groupLedgerEntries)
+    .innerJoin(
+      groupMembers,
+      eq(groupLedgerEntries.groupMemberId, groupMembers.id),
+    )
+    .innerJoin(groups, eq(groups.id, groupMembers.groupId))
+    .innerJoin(players, eq(groupMembers.playerId, players.id))
+    .leftJoin(games, eq(groupLedgerEntries.gameId, games.id))
+    .where(
+      or(
+        isNull(groupLedgerEntries.gameId),
+        and(isNotNull(games.id), isNull(games.deletedAt)),
+      ),
+    )
+    .orderBy(desc(groupLedgerEntries.createdAt))
+    .all();
+
+  const balances = R.pipe(
+    balanceRows,
+    R.map((r) =>
+      ApiGroupMemberBalanceWithGroupSchema.parse({
+        groupMemberId: r.groupMemberId,
+        groupId: r.groupId,
+        groupName: r.groupName,
+        playerId: r.playerId,
+        playerName: r.playerName,
+        balanceCents: Number(r.balanceCents),
+      }),
+    ),
+  );
+
+  const entries = R.pipe(
+    entryRows,
+    R.map((r) =>
+      ApiGroupLedgerEntryWithPlayerAndGroupSchema.parse({
+        id: r.id,
+        groupMemberId: r.groupMemberId,
+        groupId: r.groupId,
+        groupName: r.groupName,
+        amountCents: r.amountCents,
+        transactionType: r.transactionType,
+        gameId: r.gameId,
+        note: r.note,
+        createdAt: r.createdAt,
+        playerName: r.playerName,
+        playerId: r.playerId,
+      }),
+    ),
+  );
+
+  const snapshot = ApiAllGroupsLedgerSnapshotSchema.parse({ balances, entries });
+  return c.json(snapshot);
 });
 
 app.get("/:groupId/ledger", (c) => {

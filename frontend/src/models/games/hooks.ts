@@ -61,6 +61,7 @@ export function useFinalizeGameMutation() {
       qc.invalidateQueries({
         queryKey: ["groups", data.groupId, "ledger"],
       });
+      qc.invalidateQueries({ queryKey: ["groups", "ledger", "all"] });
     },
   });
 }
@@ -102,6 +103,7 @@ export function useDeleteGameMutation() {
       if (groupId) {
         qc.invalidateQueries({ queryKey: ["groups", groupId, "ledger"] });
       }
+      qc.invalidateQueries({ queryKey: ["groups", "ledger", "all"] });
     },
   });
 }

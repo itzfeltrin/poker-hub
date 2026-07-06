@@ -9,7 +9,7 @@ import {
   useDeleteGroupMutation,
   useAddGroupMemberMutation,
 } from "@/api/hooks";
-import { useForm } from "react-hook-form";
+import { useGroupScope } from "@/contexts/GroupContext";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -43,6 +43,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function GroupDetailsPage() {
   const { groupId } = useParams({ from: "/groups/$groupId" });
   const navigate = useNavigate();
+  const { setSelectedGroupId } = useGroupScope();
   const { data: group, isLoading, error } = useGroupQuery(groupId);
   const { data: groupsWithCounts = [] } = useGroupsQuery();
   const { data: members = [], isLoading: membersLoading } =
@@ -171,11 +172,16 @@ export default function GroupDetailsPage() {
         </FormControl>
 
         <div className="flex flex-wrap gap-3 justify-end">
-          <Button variant="secondary" type="button" asChild>
-            <Link to="/groups/$groupId/ledger" params={{ groupId }}>
-              <Wallet className="h-4 w-4 mr-2" />
-              Bolão / extrato
-            </Link>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => {
+              setSelectedGroupId(groupId);
+              void navigate({ to: "/ledger" });
+            }}
+          >
+            <Wallet className="h-4 w-4 mr-2" />
+            Bolão / extrato
           </Button>
           <Button
             type="button"

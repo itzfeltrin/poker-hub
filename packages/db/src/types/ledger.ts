@@ -65,6 +65,35 @@ export const ApiGroupLedgerSnapshotSchema = z.object({
 
 export type ApiGroupLedgerSnapshot = z.infer<typeof ApiGroupLedgerSnapshotSchema>;
 
+export const ApiGroupMemberBalanceWithGroupSchema =
+  ApiGroupMemberBalanceSchema.extend({
+    groupId: z.uuid(),
+    groupName: z.string(),
+  });
+
+export type ApiGroupMemberBalanceWithGroup = z.infer<
+  typeof ApiGroupMemberBalanceWithGroupSchema
+>;
+
+export const ApiGroupLedgerEntryWithPlayerAndGroupSchema =
+  ApiGroupLedgerEntryWithPlayerSchema.extend({
+    groupId: z.uuid(),
+    groupName: z.string(),
+  });
+
+export type ApiGroupLedgerEntryWithPlayerAndGroup = z.infer<
+  typeof ApiGroupLedgerEntryWithPlayerAndGroupSchema
+>;
+
+export const ApiAllGroupsLedgerSnapshotSchema = z.object({
+  balances: z.array(ApiGroupMemberBalanceWithGroupSchema),
+  entries: z.array(ApiGroupLedgerEntryWithPlayerAndGroupSchema),
+});
+
+export type ApiAllGroupsLedgerSnapshot = z.infer<
+  typeof ApiAllGroupsLedgerSnapshotSchema
+>;
+
 const ledgerNoteSchema = z.string().max(500).nullable().optional();
 
 /** POST from UI: only payment or manual (game lines are created by the server when finalizing games). */

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -79,7 +79,7 @@ const mainNavItems: NavItem[] = [
 ];
 
 function ledgerPathMatch(pathname: string): boolean {
-  return /\/groups\/[^/]+\/ledger/.test(pathname);
+  return pathname === "/ledger";
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -91,31 +91,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const closeNav = () => setNavOpen(false);
 
+  const openLedger = () => {
+    closeNav();
+    void navigate({ to: "/ledger" });
+  };
+
   const handleGroupChange = (value: string) => {
     const nextGroupId = value === "all" ? null : value;
     setSelectedGroupId(nextGroupId);
 
-    if (!ledgerPathMatch(pathname)) return;
-
-    if (nextGroupId) {
-      navigate({
-        to: "/groups/$groupId/ledger",
-        params: { groupId: nextGroupId },
-      });
-      return;
-    }
-
-    navigate({ to: "/groups" });
+    if (pathname !== "/ledger") return;
   };
-
-  useEffect(() => {
-    const match = pathname.match(/\/groups\/([^/]+)\/ledger/);
-    if (!match) return;
-    const ledgerGroupId = match[1];
-    if (ledgerGroupId !== selectedGroupId) {
-      setSelectedGroupId(ledgerGroupId);
-    }
-  }, [pathname, selectedGroupId, setSelectedGroupId]);
 
   return (
     <div className="min-h-screen bg-felt flex flex-col">
@@ -165,37 +151,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </Link>
                       );
                     })}
-                    {selectedGroupId ? (
-                      <Link
-                        to="/groups/$groupId/ledger"
-                        params={{ groupId: selectedGroupId }}
-                        onClick={closeNav}
-                        className={cn(
-                          "relative flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-                          ledgerPathMatch(pathname)
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
-                        )}
-                      >
-                        <Wallet className="h-5 w-5 shrink-0" />
-                        Bolão
-                      </Link>
-                    ) : (
-                      <Link
-                        to="/groups"
-                        onClick={closeNav}
-                        className="relative flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
-                        title="Selecione um grupo no filtro para abrir o bolão deste grupo"
-                      >
-                        <Wallet className="h-5 w-5 shrink-0 opacity-70" />
-                        <span className="flex flex-col items-start gap-0.5">
-                          <span>Bolão</span>
-                          <span className="text-xs font-normal text-muted-foreground/90">
-                            Escolha um grupo no filtro
-                          </span>
-                        </span>
-                      </Link>
-                    )}
+                    <button
+                      type="button"
+                      onClick={openLedger}
+                      className={cn(
+                        "relative flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+                        ledgerPathMatch(pathname)
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                      )}
+                    >
+                      <Wallet className="h-5 w-5 shrink-0" />
+                      Bolão
+                    </button>
                   </nav>
                 </SheetContent>
               </Sheet>
