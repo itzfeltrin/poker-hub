@@ -22,30 +22,40 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as R from "remeda";
+import { maxPeerPaymentCents } from "@poker-hub/db/peer-payment";
+import { useMemo } from "react";
 
 function centsToBrl(cents: number): number {
   return cents / 100;
 }
 
-const paymentFormSchema = z.object({
-  groupMemberId: z
-    .string()
-    .min(1, "Selecione um jogador")
-    .uuid("Selecione um jogador"),
-  amountBrl: z
-    .string()
-    .min(1, "Informe o valor")
-    .transform((s) => Number(String(s).replace(",", ".")))
-    .refine((n) => Number.isFinite(n) && n > 0, "Valor inválido"),
-  direction: z.enum(["pay", "receive"]),
-  note: z.string().optional(),
-});
+const paymentFormSchema = z
+  .object({
+    payerGroupMemberId: z
+      .string()
+      .min(1, "Selecione quem pagou")
+      .uuid("Selecione quem pagou"),
+    recipientGroupMemberId: z
+      .string()
+      .min(1, "Selecione quem recebeu")
+      .uuid("Selecione quem recebeu"),
+    amountBrl: z.coerce
+      .string()
+      .transform((s) => Number(String(s).replace(",", ".")))
+      .pipe(z.number().min(1, "Informe o valor")),
+    note: z.string().optional(),
+  })
+  .refine((data) => data.payerGroupMemberId !== data.recipientGroupMemberId, {
+    message: "Quem paga e quem recebe devem ser diferentes",
+    path: ["recipientGroupMemberId"],
+  });
 
 type PaymentFormInput = z.input<typeof paymentFormSchema>;
 
-function transactionLabel(
-  t: "game" | "payment" | "manual",
-): { label: string; className: string } {
+function transactionLabel(t: "game" | "payment" | "manual"): {
+  label: string;
+  className: string;
+} {
   switch (t) {
     case "game":
       return { label: "Partida", className: "text-primary" };
@@ -58,6 +68,13 @@ function transactionLabel(
   }
 }
 
+function balanceLabel(balanceCents: number): string {
+  if (balanceCents < 0) return `deve ${formatPnl(centsToBrl(-balanceCents))}`;
+  if (balanceCents > 0)
+    return `a receber ${formatPnl(centsToBrl(balanceCents))}`;
+  return "zerado";
+}
+
 export default function GroupLedgerPage() {
   const { groupId } = useParams({ from: "/groups/$groupId/ledger" });
   const { data: group, isLoading: groupLoading } = useGroupQuery(groupId);
@@ -66,48 +83,86 @@ export default function GroupLedgerPage() {
   const { data: members = [] } = useGroupMembersQuery(groupId);
   const createMut = useCreateLedgerEntryMutation(groupId);
 
+  const balanceByMemberId = useMemo(
+    () => R.indexBy(snapshot?.balances ?? [], (b) => b.groupMemberId),
+    [snapshot?.balances],
+  );
+
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<PaymentFormInput>({
     defaultValues: {
-      groupMemberId: "",
+      payerGroupMemberId: "",
+      recipientGroupMemberId: "",
       amountBrl: "",
-      direction: "pay",
       note: "",
     },
     resolver: zodResolver(paymentFormSchema),
   });
 
-  const direction = watch("direction");
+  const payerGroupMemberId = watch("payerGroupMemberId");
+  const recipientGroupMemberId = watch("recipientGroupMemberId");
 
-  const onSubmitPayment = async (data: z.output<typeof paymentFormSchema>) => {
+  const maxPaymentCents = useMemo(() => {
+    const payer = balanceByMemberId[payerGroupMemberId];
+    const recipient = balanceByMemberId[recipientGroupMemberId];
+    if (!payer || !recipient) return 0;
+    return maxPeerPaymentCents(payer.balanceCents, recipient.balanceCents);
+  }, [balanceByMemberId, payerGroupMemberId, recipientGroupMemberId]);
+
+  const onSubmitPayment = handleSubmit(async (raw) => {
+    const data = paymentFormSchema.parse(raw);
+    const payer = balanceByMemberId[data.payerGroupMemberId];
+    const recipient = balanceByMemberId[data.recipientGroupMemberId];
+    if (!payer || !recipient) {
+      toast.error("Selecione jogadores válidos");
+      return;
+    }
+
     const cents = Math.round(data.amountBrl * 100);
-    const signed =
-      data.direction === "pay" ? cents : -cents;
+    const maxCents = maxPeerPaymentCents(
+      payer.balanceCents,
+      recipient.balanceCents,
+    );
+
+    if (maxCents === 0) {
+      setError("amountBrl", {
+        message: "Quem paga precisa estar no vermelho e quem recebe no verde",
+      });
+      return;
+    }
+
+    if (cents > maxCents) {
+      setError("amountBrl", {
+        message: `Máximo permitido: ${formatPnl(centsToBrl(maxCents))}`,
+      });
+      return;
+    }
+
     try {
       await createMut.mutateAsync({
-        groupMemberId: data.groupMemberId,
-        amountCents: signed,
+        groupMemberId: data.payerGroupMemberId,
+        counterpartyGroupMemberId: data.recipientGroupMemberId,
+        amountCents: cents,
         transactionType: "payment",
         note: data.note?.trim() || null,
       });
-      toast.success("Lançamento registrado");
+      toast.success("Pagamento registrado");
       reset({
-        groupMemberId: "",
+        payerGroupMemberId: "",
+        recipientGroupMemberId: "",
         amountBrl: "",
-        direction: data.direction,
         note: "",
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao registrar");
     }
-  };
-
-  const onSubmitManual = handleSubmit(onSubmitPayment);
+  });
 
   if (groupLoading || !group) {
     return (
@@ -179,53 +234,63 @@ export default function GroupLedgerPage() {
           Registrar pagamento
         </h2>
         <p className="text-sm text-muted-foreground">
-          <strong>Pagou à mesa</strong>: valor positivo reduz dívida (saldo
-          negativo). <strong>Recebeu</strong>: valor positivo registra que
-          retirou o que tinha a receber (saldo positivo).
+          Registre um pagamento entre dois jogadores. O valor reduz a dívida de
+          quem pagou e o crédito de quem recebeu. O máximo é o menor entre o que
+          quem paga deve e o que quem recebe tem a receber.
         </p>
-        <form onSubmit={onSubmitManual} className="space-y-4 max-w-md">
-          <FormControl label="Jogador">
+        <form onSubmit={onSubmitPayment} className="space-y-4 max-w-md">
+          <FormControl label="Quem pagou">
             <select
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-              {...register("groupMemberId")}
-              aria-invalid={!!errors.groupMemberId}
+              {...register("payerGroupMemberId")}
+              aria-invalid={!!errors.payerGroupMemberId}
             >
               <option value="">Selecione…</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
+              {members.map((m) => {
+                const balance = balanceByMemberId[m.id]?.balanceCents ?? 0;
+                const canPay = balance < 0;
+                return (
+                  <option key={m.id} value={m.id} disabled={!canPay}>
+                    {m.name} ({balanceLabel(balance)})
+                  </option>
+                );
+              })}
             </select>
-            {errors.groupMemberId && (
+            {errors.payerGroupMemberId && (
               <p className="text-sm text-destructive mt-1">
-                {errors.groupMemberId.message}
+                {errors.payerGroupMemberId.message}
               </p>
             )}
           </FormControl>
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                value="pay"
-                {...register("direction")}
-                className="accent-primary"
-              />
-              Pagou à mesa
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                value="receive"
-                {...register("direction")}
-                className="accent-primary"
-              />
-              Recebeu (sacou)
-            </label>
-          </div>
-          <FormControl
-            label={direction === "pay" ? "Valor pago (R$)" : "Valor recebido (R$)"}
-          >
+          <FormControl label="Quem recebeu">
+            <select
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              {...register("recipientGroupMemberId")}
+              aria-invalid={!!errors.recipientGroupMemberId}
+            >
+              <option value="">Selecione…</option>
+              {members.map((m) => {
+                const balance = balanceByMemberId[m.id]?.balanceCents ?? 0;
+                const canReceive = balance > 0;
+                const isPayer = m.id === payerGroupMemberId;
+                return (
+                  <option
+                    key={m.id}
+                    value={m.id}
+                    disabled={!canReceive || isPayer}
+                  >
+                    {m.name} ({balanceLabel(balance)})
+                  </option>
+                );
+              })}
+            </select>
+            {errors.recipientGroupMemberId && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.recipientGroupMemberId.message}
+              </p>
+            )}
+          </FormControl>
+          <FormControl label="Valor pago (R$)">
             <Input
               inputMode="decimal"
               placeholder="0,00"
@@ -233,6 +298,11 @@ export default function GroupLedgerPage() {
               {...register("amountBrl")}
               aria-invalid={!!errors.amountBrl}
             />
+            {maxPaymentCents > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Máximo: {formatPnl(centsToBrl(maxPaymentCents))}
+              </p>
+            )}
             {errors.amountBrl && (
               <p className="text-sm text-destructive mt-1">
                 {String(errors.amountBrl.message)}
@@ -241,12 +311,17 @@ export default function GroupLedgerPage() {
           </FormControl>
           <FormControl label="Nota (opcional)">
             <Input
-              placeholder="ex.: PIX para Fulano"
+              placeholder="ex.: PIX"
               className="bg-background"
               {...register("note")}
             />
           </FormControl>
-          <Button type="submit" disabled={isSubmitting || createMut.isPending}>
+          <Button
+            type="submit"
+            disabled={
+              isSubmitting || createMut.isPending || maxPaymentCents === 0
+            }
+          >
             {createMut.isPending ? "Salvando…" : "Registrar pagamento"}
           </Button>
         </form>
@@ -254,14 +329,12 @@ export default function GroupLedgerPage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-display font-semibold">Extrato</h2>
-        {!ledgerLoading &&
-          snapshot &&
-          R.isEmpty(snapshot.entries) && (
-            <p className="text-sm text-muted-foreground">
-              Nenhum lançamento ainda. Finalize partidas ou registre pagamentos
-              acima.
-            </p>
-          )}
+        {!ledgerLoading && snapshot && R.isEmpty(snapshot.entries) && (
+          <p className="text-sm text-muted-foreground">
+            Nenhum lançamento ainda. Finalize partidas ou registre pagamentos
+            acima.
+          </p>
+        )}
         <ul className="space-y-2">
           {snapshot?.entries.map((e) => {
             const meta = transactionLabel(e.transactionType);

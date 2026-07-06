@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   Home,
@@ -84,11 +84,38 @@ function ledgerPathMatch(pathname: string): boolean {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const { selectedGroupId, setSelectedGroupId } = useGroupScope();
   const { data: groups = [] } = useGroupsQuery();
   const [navOpen, setNavOpen] = useState(false);
 
   const closeNav = () => setNavOpen(false);
+
+  const handleGroupChange = (value: string) => {
+    const nextGroupId = value === "all" ? null : value;
+    setSelectedGroupId(nextGroupId);
+
+    if (!ledgerPathMatch(pathname)) return;
+
+    if (nextGroupId) {
+      navigate({
+        to: "/groups/$groupId/ledger",
+        params: { groupId: nextGroupId },
+      });
+      return;
+    }
+
+    navigate({ to: "/groups" });
+  };
+
+  useEffect(() => {
+    const match = pathname.match(/\/groups\/([^/]+)\/ledger/);
+    if (!match) return;
+    const ledgerGroupId = match[1];
+    if (ledgerGroupId !== selectedGroupId) {
+      setSelectedGroupId(ledgerGroupId);
+    }
+  }, [pathname, selectedGroupId, setSelectedGroupId]);
 
   return (
     <div className="min-h-screen bg-felt flex flex-col">
@@ -187,10 +214,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   "rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground max-w-[min(55vw,14rem)]",
                 )}
                 value={selectedGroupId ?? "all"}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSelectedGroupId(v === "all" ? null : v);
-                }}
+                onChange={(e) => handleGroupChange(e.target.value)}
                 aria-label="Filtrar por grupo"
               >
                 <option value="all">Todos os grupos</option>
@@ -208,10 +232,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <select
                 className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground max-w-[200px]"
                 value={selectedGroupId ?? "all"}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSelectedGroupId(v === "all" ? null : v);
-                }}
+                onChange={(e) => handleGroupChange(e.target.value)}
                 aria-label="Filtrar por grupo"
               >
                 <option value="all">Todos os grupos</option>

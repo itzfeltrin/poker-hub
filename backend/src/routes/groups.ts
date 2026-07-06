@@ -3,6 +3,7 @@ import { and, desc, eq, or, sql, isNull, isNotNull } from "drizzle-orm";
 import { db } from "../db";
 import {
   ApiGroupCreateSchema,
+  ApiGroupLedgerCreateResultSchema,
   ApiGroupLedgerEntryWithPlayerSchema,
   ApiGroupLedgerManualCreateSchema,
   ApiGroupLedgerSnapshotSchema,
@@ -14,6 +15,7 @@ import {
   groupLedgerEntries,
   groupMembers,
   groups,
+  maxPeerPaymentCents,
   players,
 } from "@poker-hub/db";
 import * as R from "remeda";
@@ -23,6 +25,57 @@ const app = new Hono();
 
 function newId(): string {
   return crypto.randomUUID();
+}
+
+const memberBalanceCentsSql = sql<number>`coalesce(sum(
+  CASE
+    WHEN ${groupLedgerEntries.gameId} IS NULL THEN ${groupLedgerEntries.amountCents}
+    WHEN ${games.id} IS NOT NULL AND ${games.deletedAt} IS NULL THEN ${groupLedgerEntries.amountCents}
+    ELSE 0
+  END
+), 0)`;
+
+function getGroupMemberBalanceCents(groupMemberId: string): number {
+  const row = db
+    .select({ balanceCents: memberBalanceCentsSql.as("balanceCents") })
+    .from(groupLedgerEntries)
+    .leftJoin(games, eq(groupLedgerEntries.gameId, games.id))
+    .where(eq(groupLedgerEntries.groupMemberId, groupMemberId))
+    .get();
+  return Number(row?.balanceCents ?? 0);
+}
+
+function getGroupMemberInGroup(groupMemberId: string, groupId: string) {
+  return db
+    .select()
+    .from(groupMembers)
+    .where(
+      and(
+        eq(groupMembers.id, groupMemberId),
+        eq(groupMembers.groupId, groupId),
+      ),
+    )
+    .get();
+}
+
+function ledgerEntryWithPlayer(
+  entry: {
+    id: string;
+    groupMemberId: string;
+    amountCents: number;
+    transactionType: string;
+    gameId: string | null;
+    note: string | null;
+    createdAt: string;
+  },
+  playerId: string,
+  playerName: string,
+) {
+  return ApiGroupLedgerEntryWithPlayerSchema.parse({
+    ...entry,
+    playerId,
+    playerName,
+  });
 }
 
 app.get("/", (c) => {
@@ -168,14 +221,7 @@ app.get("/:groupId/ledger", (c) => {
       groupMemberId: groupMembers.id,
       playerId: players.id,
       playerName: players.name,
-      balanceCents:
-        sql<number>`coalesce(sum(
-          CASE
-            WHEN ${groupLedgerEntries.gameId} IS NULL THEN ${groupLedgerEntries.amountCents}
-            WHEN ${games.id} IS NOT NULL AND ${games.deletedAt} IS NULL THEN ${groupLedgerEntries.amountCents}
-            ELSE 0
-          END
-        ), 0)`.as("balanceCents"),
+      balanceCents: memberBalanceCentsSql.as("balanceCents"),
     })
     .from(groupMembers)
     .innerJoin(players, eq(players.id, groupMembers.playerId))
@@ -267,53 +313,166 @@ app.post("/:groupId/ledger", async (c) => {
     );
   }
 
-  const memberRow = db
-    .select()
-    .from(groupMembers)
-    .where(
-      and(
-        eq(groupMembers.id, parsed.data.groupMemberId),
-        eq(groupMembers.groupId, groupId),
-      ),
-    )
-    .get();
-  if (!memberRow) {
+  if (parsed.data.transactionType === "manual") {
+    const memberRow = getGroupMemberInGroup(parsed.data.groupMemberId, groupId);
+    if (!memberRow) {
+      return c.json({ error: "Group member not found in this group" }, 404);
+    }
+
+    const id = newId();
+    const createdAt = new Date().toISOString();
+    db.insert(groupLedgerEntries)
+      .values({
+        id,
+        groupMemberId: parsed.data.groupMemberId,
+        amountCents: parsed.data.amountCents,
+        transactionType: parsed.data.transactionType,
+        gameId: null,
+        note: parsed.data.note ?? null,
+        createdAt,
+      })
+      .run();
+
+    const playerRow = db
+      .select({ name: players.name })
+      .from(players)
+      .where(eq(players.id, memberRow.playerId))
+      .get();
+
+    const result = ApiGroupLedgerCreateResultSchema.parse({
+      entries: [
+        ledgerEntryWithPlayer(
+          {
+            id,
+            groupMemberId: parsed.data.groupMemberId,
+            amountCents: parsed.data.amountCents,
+            transactionType: parsed.data.transactionType,
+            gameId: null,
+            note: parsed.data.note ?? null,
+            createdAt,
+          },
+          memberRow.playerId,
+          playerRow?.name ?? "",
+        ),
+      ],
+    });
+
+    return c.json(result, 201);
+  }
+
+  const {
+    groupMemberId: payerMemberId,
+    counterpartyGroupMemberId: recipientMemberId,
+    amountCents,
+    note,
+  } = parsed.data;
+
+  if (payerMemberId === recipientMemberId) {
+    return c.json({ error: "Quem paga e quem recebe devem ser diferentes" }, 400);
+  }
+
+  const payerMember = getGroupMemberInGroup(payerMemberId, groupId);
+  const recipientMember = getGroupMemberInGroup(recipientMemberId, groupId);
+  if (!payerMember || !recipientMember) {
     return c.json({ error: "Group member not found in this group" }, 404);
   }
 
-  const id = newId();
-  const createdAt = new Date().toISOString();
-  db.insert(groupLedgerEntries)
-    .values({
-      id,
-      groupMemberId: parsed.data.groupMemberId,
-      amountCents: parsed.data.amountCents,
-      transactionType: parsed.data.transactionType,
-      gameId: null,
-      note: parsed.data.note ?? null,
-      createdAt,
-    })
-    .run();
+  const payerBalanceCents = getGroupMemberBalanceCents(payerMemberId);
+  const recipientBalanceCents = getGroupMemberBalanceCents(recipientMemberId);
+  const maxCents = maxPeerPaymentCents(payerBalanceCents, recipientBalanceCents);
 
-  const playerRow = db
+  if (maxCents === 0) {
+    return c.json(
+      {
+        error:
+          "Pagamento inválido: quem paga precisa estar no vermelho e quem recebe no verde",
+      },
+      400,
+    );
+  }
+
+  if (amountCents > maxCents) {
+    return c.json(
+      {
+        error: `Valor excede o máximo permitido (R$ ${(maxCents / 100).toFixed(2)})`,
+      },
+      400,
+    );
+  }
+
+  const payerPlayer = db
     .select({ name: players.name })
     .from(players)
-    .where(eq(players.id, memberRow.playerId))
+    .where(eq(players.id, payerMember.playerId))
+    .get();
+  const recipientPlayer = db
+    .select({ name: players.name })
+    .from(players)
+    .where(eq(players.id, recipientMember.playerId))
     .get();
 
-  const row = ApiGroupLedgerEntryWithPlayerSchema.parse({
-    id,
-    groupMemberId: parsed.data.groupMemberId,
-    amountCents: parsed.data.amountCents,
-    transactionType: parsed.data.transactionType,
-    gameId: null,
-    note: parsed.data.note ?? null,
-    createdAt,
-    playerId: memberRow.playerId,
-    playerName: playerRow?.name ?? "",
+  const createdAt = new Date().toISOString();
+  const payerEntryId = newId();
+  const recipientEntryId = newId();
+  const sharedNote = note?.trim() || null;
+
+  db.transaction((tx) => {
+    tx.insert(groupLedgerEntries)
+      .values({
+        id: payerEntryId,
+        groupMemberId: payerMemberId,
+        amountCents,
+        transactionType: "payment",
+        gameId: null,
+        note: sharedNote,
+        createdAt,
+      })
+      .run();
+    tx.insert(groupLedgerEntries)
+      .values({
+        id: recipientEntryId,
+        groupMemberId: recipientMemberId,
+        amountCents: -amountCents,
+        transactionType: "payment",
+        gameId: null,
+        note: sharedNote,
+        createdAt,
+      })
+      .run();
   });
 
-  return c.json(row, 201);
+  const result = ApiGroupLedgerCreateResultSchema.parse({
+    entries: [
+      ledgerEntryWithPlayer(
+        {
+          id: payerEntryId,
+          groupMemberId: payerMemberId,
+          amountCents,
+          transactionType: "payment",
+          gameId: null,
+          note: sharedNote,
+          createdAt,
+        },
+        payerMember.playerId,
+        payerPlayer?.name ?? "",
+      ),
+      ledgerEntryWithPlayer(
+        {
+          id: recipientEntryId,
+          groupMemberId: recipientMemberId,
+          amountCents: -amountCents,
+          transactionType: "payment",
+          gameId: null,
+          note: sharedNote,
+          createdAt,
+        },
+        recipientMember.playerId,
+        recipientPlayer?.name ?? "",
+      ),
+    ],
+  });
+
+  return c.json(result, 201);
 });
 
 app.patch("/:id", async (c) => {

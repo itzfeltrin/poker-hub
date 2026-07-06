@@ -65,14 +65,40 @@ export const ApiGroupLedgerSnapshotSchema = z.object({
 
 export type ApiGroupLedgerSnapshot = z.infer<typeof ApiGroupLedgerSnapshotSchema>;
 
+const ledgerNoteSchema = z.string().max(500).nullable().optional();
+
 /** POST from UI: only payment or manual (game lines are created by the server when finalizing games). */
-export const ApiGroupLedgerManualCreateSchema = z.object({
-  groupMemberId: z.uuid(),
-  amountCents: z.number().int(),
-  transactionType: z.enum(["payment", "manual"]),
-  note: z.string().max(500).nullable().optional(),
-});
+export const ApiGroupLedgerManualCreateSchema = z.discriminatedUnion(
+  "transactionType",
+  [
+    z.object({
+      transactionType: z.literal("manual"),
+      groupMemberId: z.uuid(),
+      amountCents: z.number().int(),
+      note: ledgerNoteSchema,
+    }),
+    z.object({
+      transactionType: z.literal("payment"),
+      /** Player who paid (balance should be negative). */
+      groupMemberId: z.uuid(),
+      /** Player who received the money (balance should be positive). */
+      counterpartyGroupMemberId: z.uuid(),
+      amountCents: z.number().int().positive(),
+      note: ledgerNoteSchema,
+    }),
+  ],
+);
 
 export type ApiGroupLedgerManualCreate = z.infer<
   typeof ApiGroupLedgerManualCreateSchema
 >;
+
+export const ApiGroupLedgerCreateResultSchema = z.object({
+  entries: z.array(ApiGroupLedgerEntryWithPlayerSchema),
+});
+
+export type ApiGroupLedgerCreateResult = z.infer<
+  typeof ApiGroupLedgerCreateResultSchema
+>;
+
+export { maxPeerPaymentCents } from "../peer-payment";

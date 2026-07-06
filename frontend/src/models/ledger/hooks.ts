@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
 import type {
-  ApiGroupLedgerEntryWithPlayer,
+  ApiGroupLedgerCreateResult,
   ApiGroupLedgerSnapshot,
   ApiGroupLedgerManualCreate,
 } from "@poker-hub/db";
@@ -21,7 +21,7 @@ export function useCreateLedgerEntryMutation(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: ApiGroupLedgerManualCreate) =>
-      api.post<ApiGroupLedgerEntryWithPlayer>(`/groups/${groupId}/ledger`, body),
+      api.post<ApiGroupLedgerCreateResult>(`/groups/${groupId}/ledger`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ledgerKey(groupId) });
     },

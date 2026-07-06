@@ -18,6 +18,11 @@
       "types": "./src/schema.ts",
       "import": "./src/schema.ts",
       "default": "./src/schema.ts"
+    },
+    "./peer-payment": {
+      "types": "./src/peer-payment.ts",
+      "import": "./src/peer-payment.ts",
+      "default": "./src/peer-payment.ts"
     }
   },
   "dependencies": {
