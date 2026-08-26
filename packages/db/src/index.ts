@@ -1,4 +1,5 @@
 export * from "./schema";
+export * from "./types/auth";
 export * from "./types/games";
 export * from "./types/groups";
 export * from "./types/locations";

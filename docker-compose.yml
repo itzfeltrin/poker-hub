@@ -7,6 +7,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_PATH: /data/poker-hub.sqlite
+      APP_PASSWORD: ${APP_PASSWORD}
     volumes:
       # Persist SQLite database across restarts
       - poker-hub-data:/data

@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
+import { isAuthConfigured, requireAuth } from "./auth";
+import auth from "./routes/auth";
 import players from "./routes/players";
 import locations from "./routes/locations";
 import groups from "./routes/groups";
@@ -8,11 +10,19 @@ import history from "./routes/history";
 import profitLoss from "./routes/profit-loss";
 import { openApiDoc } from "./openapi";
 
+if (!isAuthConfigured()) {
+  console.error(
+    "APP_PASSWORD is not set. All API requests will be rejected until it is configured.",
+  );
+}
+
 const app = new Hono();
 const isProduction = process.env.NODE_ENV === "production";
 
 // Mount API under /api so frontend (which calls {{base}}/api/...) works in production
 const api = new Hono();
+api.use("*", requireAuth);
+api.route("/auth", auth);
 if (!isProduction) {
   api.get("/", (c) =>
     c.json({

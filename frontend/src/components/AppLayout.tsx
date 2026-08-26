@@ -11,8 +11,10 @@ import {
   TrendingUp,
   Wallet,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 import { useGroupScope } from "@/contexts/GroupContext";
 import { useGroupsQuery } from "@/api/hooks";
 import { cn } from "@/lib/utils";
@@ -86,6 +88,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { selectedGroupId, setSelectedGroupId } = useGroupScope();
+  const { logout } = useAuth();
   const { data: groups = [] } = useGroupsQuery();
   const [navOpen, setNavOpen] = useState(false);
 
@@ -163,6 +166,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     >
                       <Wallet className="h-5 w-5 shrink-0" />
                       Bolão
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeNav();
+                        void logout();
+                      }}
+                      className="relative mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+                    >
+                      <LogOut className="h-5 w-5 shrink-0" />
+                      Sair
                     </button>
                   </nav>
                 </SheetContent>
