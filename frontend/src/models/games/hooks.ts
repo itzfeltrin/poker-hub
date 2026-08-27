@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
 import type {
-  ApiGame,
   ApiGameCreate,
   ApiGameFinalize,
   ApiGameWithPlayers,
   ApiGameBuyInCreate,
+  ApiGameSpeechParseResponse,
+  ApiGameSpeechStatus,
 } from "@poker-hub/db";
 
 const QUERY_KEYS = {
@@ -33,6 +34,33 @@ export function useGameQuery(id: string | undefined) {
     queryKey: QUERY_KEYS.game(id ?? ""),
     queryFn: () => api.get<ApiGameWithPlayers>(`/games/${id}`),
     enabled: !!id,
+  });
+}
+
+export function useSpeechStatusQuery() {
+  return useQuery({
+    queryKey: ["games", "speech-status"] as const,
+    queryFn: () => api.get<ApiGameSpeechStatus>("/games/parse-speech"),
+    staleTime: 60_000,
+  });
+}
+
+export function useParseGameSpeechMutation() {
+  return useMutation({
+    mutationFn: (audio: Blob) => {
+      const form = new FormData();
+      const type = audio.type || "audio/webm";
+      const ext = type.includes("mp4")
+        ? "mp4"
+        : type.includes("ogg")
+          ? "ogg"
+          : "webm";
+      form.append("audio", audio, `recording.${ext}`);
+      return api.postForm<ApiGameSpeechParseResponse>(
+        "/games/parse-speech",
+        form,
+      );
+    },
   });
 }
 

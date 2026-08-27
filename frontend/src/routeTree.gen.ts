@@ -11,12 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StandingsRouteImport } from './routes/standings'
 import { Route as PlayersRouteImport } from './routes/players'
-import { Route as NewGameRouteImport } from './routes/new-game'
 import { Route as LedgerRouteImport } from './routes/ledger'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as NewGameIndexRouteImport } from './routes/new-game/index'
 import { Route as LocationsIndexRouteImport } from './routes/locations/index'
 import { Route as GroupsIndexRouteImport } from './routes/groups/index'
+import { Route as NewGameSpeakRouteImport } from './routes/new-game/speak'
 import { Route as LocationsNewRouteImport } from './routes/locations/new'
 import { Route as LocationsLocationIdRouteImport } from './routes/locations/$locationId'
 import { Route as GroupsNewRouteImport } from './routes/groups/new'
@@ -34,11 +35,6 @@ const PlayersRoute = PlayersRouteImport.update({
   path: '/players',
   getParentRoute: () => rootRouteImport,
 } as any)
-const NewGameRoute = NewGameRouteImport.update({
-  id: '/new-game',
-  path: '/new-game',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LedgerRoute = LedgerRouteImport.update({
   id: '/ledger',
   path: '/ledger',
@@ -54,6 +50,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewGameIndexRoute = NewGameIndexRouteImport.update({
+  id: '/new-game/',
+  path: '/new-game/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocationsIndexRoute = LocationsIndexRouteImport.update({
   id: '/locations/',
   path: '/locations/',
@@ -62,6 +63,11 @@ const LocationsIndexRoute = LocationsIndexRouteImport.update({
 const GroupsIndexRoute = GroupsIndexRouteImport.update({
   id: '/groups/',
   path: '/groups/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewGameSpeakRoute = NewGameSpeakRouteImport.update({
+  id: '/new-game/speak',
+  path: '/new-game/speak',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocationsNewRoute = LocationsNewRouteImport.update({
@@ -99,7 +105,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/ledger': typeof LedgerRoute
-  '/new-game': typeof NewGameRoute
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -107,23 +112,26 @@ export interface FileRoutesByFullPath {
   '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
+  '/new-game/speak': typeof NewGameSpeakRoute
   '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
+  '/new-game/': typeof NewGameIndexRoute
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/ledger': typeof LedgerRoute
-  '/new-game': typeof NewGameRoute
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
+  '/new-game/speak': typeof NewGameSpeakRoute
   '/groups': typeof GroupsIndexRoute
   '/locations': typeof LocationsIndexRoute
+  '/new-game': typeof NewGameIndexRoute
   '/groups/$groupId': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRoutesById {
@@ -131,7 +139,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/ledger': typeof LedgerRoute
-  '/new-game': typeof NewGameRoute
   '/players': typeof PlayersRoute
   '/standings': typeof StandingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -139,8 +146,10 @@ export interface FileRoutesById {
   '/groups/new': typeof GroupsNewRoute
   '/locations/$locationId': typeof LocationsLocationIdRoute
   '/locations/new': typeof LocationsNewRoute
+  '/new-game/speak': typeof NewGameSpeakRoute
   '/groups/': typeof GroupsIndexRoute
   '/locations/': typeof LocationsIndexRoute
+  '/new-game/': typeof NewGameIndexRoute
   '/groups/$groupId/': typeof GroupsGroupIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -149,7 +158,6 @@ export interface FileRouteTypes {
     | '/'
     | '/history'
     | '/ledger'
-    | '/new-game'
     | '/players'
     | '/standings'
     | '/games/$gameId'
@@ -157,30 +165,32 @@ export interface FileRouteTypes {
     | '/groups/new'
     | '/locations/$locationId'
     | '/locations/new'
+    | '/new-game/speak'
     | '/groups/'
     | '/locations/'
+    | '/new-game/'
     | '/groups/$groupId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/history'
     | '/ledger'
-    | '/new-game'
     | '/players'
     | '/standings'
     | '/games/$gameId'
     | '/groups/new'
     | '/locations/$locationId'
     | '/locations/new'
+    | '/new-game/speak'
     | '/groups'
     | '/locations'
+    | '/new-game'
     | '/groups/$groupId'
   id:
     | '__root__'
     | '/'
     | '/history'
     | '/ledger'
-    | '/new-game'
     | '/players'
     | '/standings'
     | '/games/$gameId'
@@ -188,8 +198,10 @@ export interface FileRouteTypes {
     | '/groups/new'
     | '/locations/$locationId'
     | '/locations/new'
+    | '/new-game/speak'
     | '/groups/'
     | '/locations/'
+    | '/new-game/'
     | '/groups/$groupId/'
   fileRoutesById: FileRoutesById
 }
@@ -197,7 +209,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoryRoute: typeof HistoryRoute
   LedgerRoute: typeof LedgerRoute
-  NewGameRoute: typeof NewGameRoute
   PlayersRoute: typeof PlayersRoute
   StandingsRoute: typeof StandingsRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
@@ -205,8 +216,10 @@ export interface RootRouteChildren {
   GroupsNewRoute: typeof GroupsNewRoute
   LocationsLocationIdRoute: typeof LocationsLocationIdRoute
   LocationsNewRoute: typeof LocationsNewRoute
+  NewGameSpeakRoute: typeof NewGameSpeakRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
   LocationsIndexRoute: typeof LocationsIndexRoute
+  NewGameIndexRoute: typeof NewGameIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -223,13 +236,6 @@ declare module '@tanstack/react-router' {
       path: '/players'
       fullPath: '/players'
       preLoaderRoute: typeof PlayersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/new-game': {
-      id: '/new-game'
-      path: '/new-game'
-      fullPath: '/new-game'
-      preLoaderRoute: typeof NewGameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ledger': {
@@ -253,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/new-game/': {
+      id: '/new-game/'
+      path: '/new-game'
+      fullPath: '/new-game/'
+      preLoaderRoute: typeof NewGameIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/locations/': {
       id: '/locations/'
       path: '/locations'
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/groups'
       fullPath: '/groups/'
       preLoaderRoute: typeof GroupsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/new-game/speak': {
+      id: '/new-game/speak'
+      path: '/new-game/speak'
+      fullPath: '/new-game/speak'
+      preLoaderRoute: typeof NewGameSpeakRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/locations/new': {
@@ -328,7 +348,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoryRoute: HistoryRoute,
   LedgerRoute: LedgerRoute,
-  NewGameRoute: NewGameRoute,
   PlayersRoute: PlayersRoute,
   StandingsRoute: StandingsRoute,
   GamesGameIdRoute: GamesGameIdRoute,
@@ -336,8 +355,10 @@ const rootRouteChildren: RootRouteChildren = {
   GroupsNewRoute: GroupsNewRoute,
   LocationsLocationIdRoute: LocationsLocationIdRoute,
   LocationsNewRoute: LocationsNewRoute,
+  NewGameSpeakRoute: NewGameSpeakRoute,
   GroupsIndexRoute: GroupsIndexRoute,
   LocationsIndexRoute: LocationsIndexRoute,
+  NewGameIndexRoute: NewGameIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

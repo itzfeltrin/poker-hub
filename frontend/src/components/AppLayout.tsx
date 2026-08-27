@@ -64,7 +64,7 @@ const mainNavItems: NavItem[] = [
     to: "/new-game",
     label: "Nova partida",
     icon: Plus,
-    match: (p) => p === "/new-game",
+    match: (p) => p.startsWith("/new-game"),
   },
   {
     to: "/history",
@@ -260,7 +260,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             to="/new-game"
             className={cn(
               "flex flex-col items-center gap-0.5 px-2 py-2.5 text-xs transition-colors",
-              pathname === "/new-game" ? "text-primary" : "text-muted-foreground",
+              pathname.startsWith("/new-game") ? "text-primary" : "text-muted-foreground",
             )}
           >
             <Plus className="h-5 w-5" />

@@ -16,6 +16,12 @@ import { toast } from "sonner";
 import * as R from "remeda";
 import { useFinalizeGameMutation } from "@/models/games/hooks";
 import { cn } from "@/lib/utils";
+import {
+  chipBalanceMessage,
+  formatChipCount,
+  parseChipValue,
+  sumChipValues,
+} from "@/lib/chip-balance";
 
 type GamePlayer = {
   id: string;
@@ -36,39 +42,6 @@ type FinalizeFormData = {
   cashOut: Record<string, number>;
 };
 
-function parseChipValue(value: unknown): number {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-function sumCashOut(values: Record<string, unknown>): number {
-  return R.sumBy(Object.values(values), parseChipValue);
-}
-
-function formatChipCount(value: number): string {
-  return value.toLocaleString("pt-BR");
-}
-
-function chipBalanceMessage(
-  enteredTotal: number,
-  expectedTotal: number,
-): { text: string; tone: "ok" | "error" } | null {
-  const delta = enteredTotal - expectedTotal;
-  if (delta === 0) {
-    return { text: "Soma correta", tone: "ok" };
-  }
-  const amount = formatChipCount(Math.abs(delta));
-  return delta < 0
-    ? { text: `${amount} fichas faltando`, tone: "error" }
-    : { text: `${amount} fichas a mais`, tone: "error" };
-}
-
 function makeFinalizeSchema(expectedTotal: number) {
   return z
     .object({
@@ -81,7 +54,7 @@ function makeFinalizeSchema(expectedTotal: number) {
       ),
     })
     .superRefine((data, ctx) => {
-      const enteredTotal = sumCashOut(data.cashOut);
+      const enteredTotal = sumChipValues(data.cashOut);
       if (enteredTotal === expectedTotal) return;
 
       const balance = chipBalanceMessage(enteredTotal, expectedTotal);

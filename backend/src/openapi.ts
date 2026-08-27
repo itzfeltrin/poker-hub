@@ -203,6 +203,96 @@ export const openApiDoc = {
         },
       },
     },
+    "/games/parse-speech": {
+      get: {
+        summary: "Voice parse availability",
+        description:
+          "Returns whether Groq speech parsing is configured (GROQ_API_KEY).",
+        responses: {
+          "200": {
+            description: "OK",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    available: { type: "boolean" },
+                  },
+                  required: ["available"],
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: "Parse a spoken game recap",
+        description:
+          "Transcribes Portuguese audio with Groq Whisper and extracts a game draft for review. Does not create the game.",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                required: ["audio"],
+                properties: {
+                  audio: {
+                    type: "string",
+                    format: "binary",
+                    description: "Recorded audio (webm, ogg, mp4)",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Transcript and extracted draft",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/GameSpeechParseResponse",
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Missing or invalid audio",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "422": {
+            description: "Empty transcript",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "502": {
+            description: "Groq request failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "503": {
+            description: "GROQ_API_KEY is not configured",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
     "/games/{id}": {
       get: {
         summary: "Get game by ID",
@@ -429,6 +519,50 @@ export const openApiDoc = {
           total_buy_in: { type: "number" },
           total_cash_out: { type: "number" },
           profit_loss: { type: "number" },
+        },
+      },
+      GameSpeechParseResponse: {
+        type: "object",
+        required: ["transcript", "draft", "unmatched"],
+        properties: {
+          transcript: { type: "string" },
+          draft: {
+            type: "object",
+            properties: {
+              date: { type: "string", nullable: true },
+              buyIn: { type: "number", nullable: true },
+              chipsPerPlayer: { type: "number", nullable: true },
+              groupId: { type: "string", format: "uuid", nullable: true },
+              locationId: { type: "string", format: "uuid", nullable: true },
+              playerIds: {
+                type: "array",
+                items: { type: "string", format: "uuid" },
+              },
+              extraBuyIns: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["playerId"],
+                  properties: {
+                    playerId: { type: "string", format: "uuid" },
+                    chips: { type: "number" },
+                  },
+                },
+              },
+              cashOut: {
+                type: "object",
+                additionalProperties: { type: "number" },
+              },
+            },
+          },
+          unmatched: {
+            type: "object",
+            properties: {
+              players: { type: "array", items: { type: "string" } },
+              locations: { type: "array", items: { type: "string" } },
+              groups: { type: "array", items: { type: "string" } },
+            },
+          },
         },
       },
       Error: {

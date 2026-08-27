@@ -19,11 +19,12 @@ async function request<T>(
 ): Promise<T> {
   const { skipUnauthorizedHandler, ...fetchOptions } = options;
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  const isFormData = fetchOptions.body instanceof FormData;
   const res = await fetch(url, {
     ...fetchOptions,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...fetchOptions.headers,
     },
   });
@@ -43,6 +44,8 @@ export const api = {
   get: <T>(path: string, options?: RequestOptions) => request<T>(path, options),
   post: <T>(path: string, body: unknown, options?: RequestOptions) =>
     request<T>(path, { ...options, method: "POST", body: JSON.stringify(body) }),
+  postForm: <T>(path: string, body: FormData, options?: RequestOptions) =>
+    request<T>(path, { ...options, method: "POST", body }),
   patch: <T>(path: string, body: unknown, options?: RequestOptions) =>
     request<T>(path, { ...options, method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string, options?: RequestOptions) =>

@@ -12,10 +12,13 @@ import {
   groupLedgerEntries,
   groupMembers,
   groups,
+  locations,
   players,
 } from "@poker-hub/db";
 import type { ApiGameWithPlayers } from "@poker-hub/db";
 import * as R from "remeda";
+import { isGroqConfigured } from "../groq";
+import { parseGameSpeech, SpeechParseError } from "../speech-game";
 
 const app = new Hono();
 
@@ -81,6 +84,60 @@ function ensureGroupMemberId(groupId: string, playerId: string): string {
   db.insert(groupMembers).values({ id, groupId, playerId }).run();
   return id;
 }
+
+const MAX_SPEECH_AUDIO_BYTES = 25 * 1024 * 1024;
+
+function loadSpeechCatalogs() {
+  return {
+    players: db
+      .select({ id: players.id, name: players.name })
+      .from(players)
+      .all(),
+    locations: db
+      .select({ id: locations.id, name: locations.name })
+      .from(locations)
+      .all(),
+    groups: db.select({ id: groups.id, name: groups.name }).from(groups).all(),
+  };
+}
+
+app.get("/parse-speech", (c) => {
+  return c.json({ available: isGroqConfigured() });
+});
+
+app.post("/parse-speech", async (c) => {
+  if (!isGroqConfigured()) {
+    return c.json({ error: "GROQ_API_KEY is not configured" }, 503);
+  }
+
+  const formData = await c.req.formData();
+  const audioField = formData.get("audio");
+  if (!(audioField instanceof Blob) || audioField.size === 0) {
+    return c.json({ error: "Audio file is required" }, 400);
+  }
+  if (audioField.size > MAX_SPEECH_AUDIO_BYTES) {
+    return c.json({ error: "Audio file is too large" }, 400);
+  }
+
+  const audio =
+    audioField instanceof File && audioField.name
+      ? audioField
+      : new File([audioField], "recording.webm", {
+          type: audioField.type || "audio/webm",
+        });
+
+  try {
+    const result = await parseGameSpeech(audio, loadSpeechCatalogs());
+    return c.json(result);
+  } catch (err) {
+    if (err instanceof SpeechParseError) {
+      return c.json({ error: err.message }, err.status);
+    }
+    const message =
+      err instanceof Error ? err.message : "Failed to parse speech";
+    return c.json({ error: message }, 502);
+  }
+});
 
 app.post("/", async (c) => {
   const body = await c.req.json();

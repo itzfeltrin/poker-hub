@@ -20,6 +20,8 @@ export {
   useFinalizeGameMutation,
   useCreateBuyInMutation,
   useDeleteGameMutation,
+  useSpeechStatusQuery,
+  useParseGameSpeechMutation,
 } from "@/models/games/hooks";
 export {
   useGroupsQuery,

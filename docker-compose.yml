@@ -8,6 +8,7 @@ services:
       PORT: 3000
       DATABASE_PATH: /data/poker-hub.sqlite
       APP_PASSWORD: ${APP_PASSWORD}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
     volumes:
       # Persist SQLite database across restarts
       - poker-hub-data:/data

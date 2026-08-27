@@ -1,20 +1,22 @@
-import {
-  usePlayersQuery,
-  useCreateGameMutation,
-  useGroupsQuery,
-  useGroupMembersQuery,
-} from "@/api/hooks";
-import { useGroupScope } from "@/contexts/GroupContext";
-import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { LocationCombobox } from "@/components/LocationCombobox";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef } from "react";
+import { Mic } from "lucide-react";
 import type { ApiGameCreate } from "@poker-hub/db";
 import * as R from "remeda";
+import {
+  usePlayersQuery,
+  useCreateGameMutation,
+  useGroupsQuery,
+  useGroupMembersQuery,
+  useSpeechStatusQuery,
+} from "@/api/hooks";
+import { useGroupScope } from "@/contexts/GroupContext";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { LocationCombobox } from "@/components/LocationCombobox";
 import {
   Container,
   Lockup,
@@ -55,6 +57,7 @@ const defaultValues = {
 export default function NewGamePage() {
   const { data: players = [] } = usePlayersQuery();
   const { data: groups = [] } = useGroupsQuery();
+  const { data: speechStatus } = useSpeechStatusQuery();
   const { selectedGroupId } = useGroupScope();
   const createGameMut = useCreateGameMutation();
   const navigate = useNavigate();
@@ -139,10 +142,20 @@ export default function NewGamePage() {
 
   return (
     <Container size="md">
-      <Lockup>
-        <Lockup.Title>Registrar partida</Lockup.Title>
-        <Lockup.Subtitle>Registre o resultado da sua sessão.</Lockup.Subtitle>
-      </Lockup>
+      <div className="flex items-start justify-between gap-4">
+        <Lockup>
+          <Lockup.Title>Registrar partida</Lockup.Title>
+          <Lockup.Subtitle>Registre o resultado da sua sessão.</Lockup.Subtitle>
+        </Lockup>
+        {speechStatus?.available && (
+          <Button asChild variant="outline">
+            <Link to="/new-game/speak">
+              <Mic className="h-4 w-4" />
+              Falar a partida
+            </Link>
+          </Button>
+        )}
+      </div>
 
       <Grid cols={2}>
         <FormControl label="Grupo" className="md:col-span-2">

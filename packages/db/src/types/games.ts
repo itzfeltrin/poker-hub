@@ -54,3 +54,41 @@ export const ApiGameBuyInCreateSchema = z.object({
 });
 
 export type ApiGameBuyInCreate = z.infer<typeof ApiGameBuyInCreateSchema>;
+
+/** Partial game extracted from speech; missing fields stay null for the review UI. */
+export const ApiGameSpeechDraftSchema = z.object({
+  date: z.string().nullable(),
+  buyIn: z.number().positive().nullable(),
+  chipsPerPlayer: z.number().positive().nullable(),
+  groupId: z.uuid().nullable(),
+  locationId: z.uuid().nullable(),
+  playerIds: z.array(z.uuid()),
+  extraBuyIns: z.array(ApiGameBuyInCreateSchema),
+  cashOut: z.record(z.string().uuid(), z.number().min(0)),
+});
+
+export type ApiGameSpeechDraft = z.infer<typeof ApiGameSpeechDraftSchema>;
+
+export const ApiGameSpeechUnmatchedSchema = z.object({
+  players: z.array(z.string()),
+  locations: z.array(z.string()),
+  groups: z.array(z.string()),
+});
+
+export type ApiGameSpeechUnmatched = z.infer<typeof ApiGameSpeechUnmatchedSchema>;
+
+export const ApiGameSpeechParseResponseSchema = z.object({
+  transcript: z.string(),
+  draft: ApiGameSpeechDraftSchema,
+  unmatched: ApiGameSpeechUnmatchedSchema,
+});
+
+export type ApiGameSpeechParseResponse = z.infer<
+  typeof ApiGameSpeechParseResponseSchema
+>;
+
+export const ApiGameSpeechStatusSchema = z.object({
+  available: z.boolean(),
+});
+
+export type ApiGameSpeechStatus = z.infer<typeof ApiGameSpeechStatusSchema>;
