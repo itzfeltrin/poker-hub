@@ -10,7 +10,7 @@ import {
   useAddGroupMemberMutation,
 } from "@/api/hooks";
 import { useGroupScope } from "@/contexts/GroupContext";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2, Wallet } from "lucide-react";

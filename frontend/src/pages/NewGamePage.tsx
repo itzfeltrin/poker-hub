@@ -10,7 +10,7 @@ import { LocationCombobox } from "@/components/LocationCombobox";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useForm, Controller } from "react-hook-form";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef } from "react";
 import type { ApiGameCreate } from "@poker-hub/db";

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 /** Origem da linha: partida, pagamento fora do app, ou ajuste manual. */
 export const GroupLedgerTransactionTypeSchema = z.enum([

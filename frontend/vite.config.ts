@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   resolve: {
+    dedupe: ["zod"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@shared": path.resolve(__dirname, "../shared"),

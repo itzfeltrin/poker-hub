@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import * as R from "remeda";
 import { db } from "../db";
 import { ApiLocationSchema, locations, games } from "@poker-hub/db";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 const app = new Hono();

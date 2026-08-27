@@ -1,6 +1,8 @@
+import { useState } from "react";
 import {
   usePlayersQuery,
   useCreatePlayerMutation,
+  useDeletePlayerMutation,
   useHistoryQuery,
   useProfitLossQuery,
 } from "@/api/hooks";
@@ -11,8 +13,9 @@ import { Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatPnl } from "@/lib/utils";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   Container,
   Lockup,
@@ -20,6 +23,16 @@ import {
   Input,
   Label,
 } from "@poker-hub/design-system";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório"),
@@ -31,6 +44,12 @@ const defaultValues: FormData = {
   name: "",
 };
 
+type DeleteTarget = {
+  id: string;
+  name: string;
+  gamesCount: number;
+};
+
 export default function PlayersPage() {
   const { selectedGroupId } = useGroupScope();
   const { data: players = [] } = usePlayersQuery();
@@ -40,6 +59,8 @@ export default function PlayersPage() {
     groupId: selectedGroupId,
   });
   const createPlayerMut = useCreatePlayerMutation();
+  const deletePlayerMut = useDeletePlayerMutation();
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   // --- Form ---
   const {
@@ -59,6 +80,22 @@ export default function PlayersPage() {
         onSuccess: () => reset(),
       },
     );
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deletePlayerMut.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        toast.success("Jogador excluído com sucesso");
+        setDeleteTarget(null);
+      },
+      onError: (error) => {
+        toast.error(
+          error instanceof Error ? error.message : "Erro ao excluir jogador",
+        );
+        setDeleteTarget(null);
+      },
+    });
   };
 
   return (
@@ -130,10 +167,18 @@ export default function PlayersPage() {
                   </div>
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-loss shrink-0"
-                  onClick={() => {}}
+                  aria-label={`Excluir ${player.name}`}
+                  onClick={() =>
+                    setDeleteTarget({
+                      id: player.id,
+                      name: player.name,
+                      gamesCount,
+                    })
+                  }
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -142,6 +187,41 @@ export default function PlayersPage() {
           })}
         </AnimatePresence>
       </div>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={() => setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir jogador</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o jogador &quot;{deleteTarget?.name}&quot;?
+              {deleteTarget && deleteTarget.gamesCount > 0 && (
+                <span className="block mt-2 text-destructive">
+                  Este jogador tem {deleteTarget.gamesCount}{" "}
+                  {deleteTarget.gamesCount === 1
+                    ? "partida associada"
+                    : "partidas associadas"}{" "}
+                  e não pode ser excluído.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={
+                deletePlayerMut.isPending || (deleteTarget?.gamesCount ?? 0) > 0
+              }
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePlayerMut.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Container>
   );
 }

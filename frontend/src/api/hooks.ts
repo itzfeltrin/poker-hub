@@ -3,6 +3,7 @@
 export {
   usePlayersQuery,
   useCreatePlayerMutation,
+  useDeletePlayerMutation,
 } from "@/models/players/hooks";
 export {
   useLocationsQuery,

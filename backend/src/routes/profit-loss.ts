@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { and, eq, gte, isNotNull, isNull, lte } from "drizzle-orm";
 import * as R from "remeda";
-import z from "zod";
+import { z } from "zod/v4";
 import { db } from "../db";
 import {
   ApiProfitLossSchema,

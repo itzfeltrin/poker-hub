@@ -10,7 +10,7 @@ import {
   players,
 } from "@poker-hub/db";
 import * as R from "remeda";
-import z from "zod";
+import { z } from "zod/v4";
 
 const app = new Hono();
 

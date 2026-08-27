@@ -114,6 +114,51 @@ export const openApiDoc = {
           },
         },
       },
+      delete: {
+        summary: "Delete player",
+        description:
+          "Deletes a player and their group memberships. Players referenced by games cannot be deleted.",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                  },
+                  required: ["success"],
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Player not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "409": {
+            description: "Player is referenced by games",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
     },
     "/games": {
       post: {

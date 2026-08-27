@@ -1,8 +1,11 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { ApiPlayerSchema } from "./players";
 
 export const ApiGameSchema = z.object({
-  id: z.uuid().optional().default(() => crypto.randomUUID()),
+  id: z
+    .uuid()
+    .optional()
+    .default(() => crypto.randomUUID()),
   date: z.string(),
   buyIn: z.number().positive("Buy-in must be a positive number"),
   chipsPerPlayer: z
@@ -47,10 +50,7 @@ export type ApiGameFinalize = FinalizeGameBody;
 
 export const ApiGameBuyInCreateSchema = z.object({
   playerId: z.uuid("Player ID must be a valid UUID"),
-  chips: z
-    .number()
-    .positive("Chips must be a positive number")
-    .optional(),
+  chips: z.number().positive("Chips must be a positive number").optional(),
 });
 
 export type ApiGameBuyInCreate = z.infer<typeof ApiGameBuyInCreateSchema>;

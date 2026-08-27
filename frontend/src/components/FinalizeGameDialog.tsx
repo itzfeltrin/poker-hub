@@ -10,7 +10,7 @@ import {
 import { Button, Input, Label } from "@poker-hub/design-system";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import * as R from "remeda";

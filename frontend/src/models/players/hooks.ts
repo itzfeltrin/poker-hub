@@ -21,3 +21,15 @@ export function useCreatePlayerMutation() {
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEYS.players }),
   });
 }
+
+export function useDeletePlayerMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.delete<{ success: boolean }>(`/players/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.players });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+}
