@@ -236,7 +236,7 @@ export default function LedgerPage() {
                   <span className="font-medium truncate block">
                     {b.playerName}
                   </span>
-                  {"groupName" in b && (
+                  {b.groupName != null && (
                     <span className="text-xs text-muted-foreground truncate block">
                       {b.groupName}
                     </span>
@@ -388,7 +388,7 @@ export default function LedgerPage() {
                         {meta.label}
                       </span>
                     </div>
-                    {"groupName" in e && (
+                    {e.groupName != null && (
                       <p className="text-xs text-muted-foreground mt-1">
                         {e.groupName}
                       </p>

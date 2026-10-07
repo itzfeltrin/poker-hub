@@ -39,7 +39,11 @@ import {
 import * as R from "remeda";
 
 const formSchema = z.object({
-  name: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Nome é obrigatório")
+    .max(100, "Nome muito longo"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -163,7 +167,8 @@ export default function GroupDetailsPage() {
           Edite o nome e os membros do grupo.{" "}
           {gameCount > 0 && (
             <span className="text-muted-foreground">
-              {gameCount} {gameCount === 1 ? "partida" : "partidas"} neste grupo.
+              {gameCount} {gameCount === 1 ? "partida" : "partidas"} neste
+              grupo.
             </span>
           )}
         </Lockup.Subtitle>
@@ -178,7 +183,9 @@ export default function GroupDetailsPage() {
             {...register("name")}
           />
           {errors.name && (
-            <p className="text-sm text-destructive mt-1">{errors.name.message}</p>
+            <p className="text-sm text-destructive mt-1">
+              {errors.name.message}
+            </p>
           )}
         </FormControl>
 

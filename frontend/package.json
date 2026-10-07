@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --noEmit",
     "build": "node scripts/build-and-exit.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
