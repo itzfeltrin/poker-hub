@@ -13,6 +13,7 @@ import {
   PeriodFilterSchema,
   type PeriodFilter,
 } from "@poker-hub/db";
+import { getChampionship } from "../championships";
 
 const app = new Hono();
 
@@ -57,32 +58,51 @@ function getEndDate(period: PeriodFilter, endDateQuery?: string): string | null 
 }
 
 app.get("/", (c) => {
-  const period = parsePeriod(c.req.query("period"));
-  const startDate = getStartDate(
+  const championshipIdParsed = z.uuid().safeParse(c.req.query("championshipId"));
+  const groupFilterParsed = z.uuid().safeParse(c.req.query("groupId"));
+
+  let period = parsePeriod(c.req.query("period"));
+  let startDate = getStartDate(
     period,
     c.req.query("startDate") ?? c.req.query("start_date") ?? undefined,
   );
-  const endDate = getEndDate(
+  let endDate = getEndDate(
     period,
     c.req.query("endDate") ?? c.req.query("end_date") ?? undefined,
   );
+  let groupId = groupFilterParsed.success ? groupFilterParsed.data : undefined;
 
-  const groupFilterParsed = z.uuid().safeParse(c.req.query("groupId"));
+  if (championshipIdParsed.success) {
+    if (!groupId) {
+      return c.json(
+        { error: "groupId is required when filtering by championship" },
+        400,
+      );
+    }
+    const championship = getChampionship(groupId, championshipIdParsed.data);
+    if (!championship) {
+      return c.json({ error: "Campeonato não encontrado" }, 404);
+    }
+  }
 
   const finishedCondition = and(eq(games.finished, true), isNull(games.deletedAt));
-  const dateWhere =
-    startDate && endDate
-      ? and(
-          finishedCondition,
-          gte(games.date, startDate),
-          lte(games.date, endDate),
-        )
-      : startDate
-        ? and(finishedCondition, gte(games.date, startDate))
-        : finishedCondition;
+  const dateWhere = championshipIdParsed.success
+    ? and(
+        finishedCondition,
+        eq(games.championshipId, championshipIdParsed.data),
+      )
+    : startDate && endDate
+        ? and(
+            finishedCondition,
+            gte(games.date, startDate),
+            lte(games.date, endDate),
+          )
+        : startDate
+          ? and(finishedCondition, gte(games.date, startDate))
+          : finishedCondition;
 
-  const where = groupFilterParsed.success
-    ? and(dateWhere, eq(games.groupId, groupFilterParsed.data))
+  const where = groupId
+    ? and(dateWhere, eq(games.groupId, groupId))
     : dateWhere;
 
   const gameRows = db
@@ -178,7 +198,7 @@ app.get("/", (c) => {
     period,
     startDate: startDate ?? null,
     endDate: endDate ?? null,
-    groupId: groupFilterParsed.success ? groupFilterParsed.data : null,
+    groupId: groupId ?? null,
     players: playersList,
   });
 

@@ -17,6 +17,7 @@ export {
   useHistoryQuery,
   useGameQuery,
   useCreateGameMutation,
+  usePatchGameMutation,
   useFinalizeGameMutation,
   useCreateBuyInMutation,
   useDeleteGameMutation,
@@ -31,6 +32,9 @@ export {
   useUpdateGroupMutation,
   useDeleteGroupMutation,
   useAddGroupMemberMutation,
+  useGroupChampionshipsQuery,
+  useCreateChampionshipMutation,
+  useDeleteChampionshipMutation,
   type GroupWithGameCount,
 } from "@/models/groups/hooks";
 export { useProfitLossQuery } from "@/models/profit-loss/hooks";

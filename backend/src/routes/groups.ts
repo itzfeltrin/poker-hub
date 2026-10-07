@@ -14,6 +14,10 @@ import {
   ApiGroupMemberSchema,
   ApiGroupPatchSchema,
   ApiGroupSchema,
+  ApiChampionshipCreateSchema,
+  ApiChampionshipPatchSchema,
+  ApiChampionshipSchema,
+  championships,
   games,
   groupLedgerEntries,
   groupMembers,
@@ -23,6 +27,11 @@ import {
 } from "@poker-hub/db";
 import * as R from "remeda";
 import { z } from "zod/v4";
+import {
+  championshipOverlapsOther,
+  insertDefaultChampionship,
+  listChampionships,
+} from "../championships";
 
 const app = new Hono();
 
@@ -118,6 +127,7 @@ app.post("/", async (c) => {
 
   const id = parsed.data.id ?? newId();
   db.insert(groups).values({ id, name: parsed.data.name }).run();
+  insertDefaultChampionship(id);
 
   return c.json({ id, name: parsed.data.name }, 201);
 });
@@ -212,6 +222,153 @@ app.post("/:groupId/members", async (c) => {
     }),
     201,
   );
+});
+
+app.get("/:groupId/championships", (c) => {
+  const groupId = c.req.param("groupId");
+  const groupRow = db.select().from(groups).where(eq(groups.id, groupId)).get();
+  if (!groupRow) return c.json({ error: "Group not found" }, 404);
+  return c.json(listChampionships(groupId));
+});
+
+app.post("/:groupId/championships", async (c) => {
+  const groupId = c.req.param("groupId");
+  const groupRow = db.select().from(groups).where(eq(groups.id, groupId)).get();
+  if (!groupRow) return c.json({ error: "Group not found" }, 404);
+
+  const body = await c.req.json();
+  const parsed = ApiChampionshipCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid championship" },
+      400,
+    );
+  }
+
+  if (
+    championshipOverlapsOther(
+      groupId,
+      parsed.data.startDate,
+      parsed.data.endDate,
+    )
+  ) {
+    return c.json(
+      { error: "As datas se sobrepõem a outro campeonato deste grupo" },
+      409,
+    );
+  }
+
+  const id = parsed.data.id ?? newId();
+  const row = {
+    id,
+    groupId,
+    name: parsed.data.name.trim(),
+    startDate: parsed.data.startDate,
+    endDate: parsed.data.endDate,
+  };
+
+  try {
+    db.insert(championships).values(row).run();
+  } catch {
+    return c.json(
+      { error: "Já existe um campeonato com este nome neste grupo" },
+      409,
+    );
+  }
+
+  return c.json(ApiChampionshipSchema.parse(row), 201);
+});
+
+app.patch("/:groupId/championships/:championshipId", async (c) => {
+  const groupId = c.req.param("groupId");
+  const championshipId = c.req.param("championshipId");
+  const existing = db
+    .select()
+    .from(championships)
+    .where(
+      and(
+        eq(championships.id, championshipId),
+        eq(championships.groupId, groupId),
+      ),
+    )
+    .get();
+  if (!existing) return c.json({ error: "Campeonato não encontrado" }, 404);
+
+  const body = await c.req.json();
+  const parsed = ApiChampionshipPatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid body" },
+      400,
+    );
+  }
+
+  const next = {
+    name: parsed.data.name?.trim() ?? existing.name,
+    startDate: parsed.data.startDate ?? existing.startDate,
+    endDate: parsed.data.endDate ?? existing.endDate,
+  };
+  if (next.startDate > next.endDate) {
+    return c.json(
+      { error: "A data de início deve ser anterior ou igual à data de fim" },
+      400,
+    );
+  }
+  if (
+    championshipOverlapsOther(
+      groupId,
+      next.startDate,
+      next.endDate,
+      championshipId,
+    )
+  ) {
+    return c.json(
+      { error: "As datas se sobrepõem a outro campeonato deste grupo" },
+      409,
+    );
+  }
+
+  try {
+    db.update(championships)
+      .set(next)
+      .where(eq(championships.id, championshipId))
+      .run();
+  } catch {
+    return c.json(
+      { error: "Já existe um campeonato com este nome neste grupo" },
+      409,
+    );
+  }
+
+  const updated = db
+    .select()
+    .from(championships)
+    .where(eq(championships.id, championshipId))
+    .get();
+  if (!updated) return c.json({ error: "Campeonato não encontrado" }, 404);
+  return c.json(ApiChampionshipSchema.parse(updated));
+});
+
+app.delete("/:groupId/championships/:championshipId", (c) => {
+  const groupId = c.req.param("groupId");
+  const championshipId = c.req.param("championshipId");
+  const existing = db
+    .select()
+    .from(championships)
+    .where(
+      and(
+        eq(championships.id, championshipId),
+        eq(championships.groupId, groupId),
+      ),
+    )
+    .get();
+  if (!existing) return c.json({ error: "Campeonato não encontrado" }, 404);
+  db.update(games)
+    .set({ championshipId: null })
+    .where(eq(games.championshipId, championshipId))
+    .run();
+  db.delete(championships).where(eq(championships.id, championshipId)).run();
+  return c.json({ success: true });
 });
 
 app.get("/ledger", (c) => {
@@ -622,6 +779,7 @@ app.delete("/:id", (c) => {
     return c.json({ error: "Cannot delete group that has games" }, 409);
   }
 
+  db.delete(championships).where(eq(championships.groupId, id)).run();
   db.delete(groupMembers).where(eq(groupMembers.groupId, id)).run();
   db.delete(groups).where(eq(groups.id, id)).run();
   return c.json({ success: true });

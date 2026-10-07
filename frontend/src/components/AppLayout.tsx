@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGroupScope } from "@/contexts/GroupContext";
-import { useGroupsQuery } from "@/api/hooks";
+import { useGroupScope, useSyncChampionshipSelection } from "@/contexts/GroupContext";
+import { useGroupsQuery, useGroupChampionshipsQuery } from "@/api/hooks";
 import { cn } from "@/lib/utils";
 import { Button } from "@poker-hub/design-system";
 import {
@@ -84,12 +84,104 @@ function ledgerPathMatch(pathname: string): boolean {
   return pathname === "/ledger";
 }
 
+function championshipOptionLabel(name: string, startDate: string, endDate: string) {
+  const start = startDate.slice(0, 10);
+  const end = endDate.slice(0, 10);
+  return `${name} (${start} – ${end})`;
+}
+
+function GroupAndChampionshipFilters({ compact }: { compact?: boolean }) {
+  const {
+    selectedGroupId,
+    setSelectedGroupId,
+    selectedChampionshipId,
+    setSelectedChampionshipId,
+  } = useGroupScope();
+  const { data: groups = [] } = useGroupsQuery();
+  const championshipsQuery = useGroupChampionshipsQuery(
+    selectedGroupId ?? undefined,
+  );
+  const championships = championshipsQuery.data ?? [];
+
+  const handleGroupChange = (value: string) => {
+    setSelectedGroupId(value === "all" ? null : value);
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 text-sm text-muted-foreground min-w-0",
+        compact ? "" : "shrink-0",
+      )}
+    >
+      <label className="flex items-center gap-2 min-w-0">
+        {!compact && <span>Grupo</span>}
+        <span className="sr-only">{compact ? "Grupo" : undefined}</span>
+        <select
+          className={cn(
+            "rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground",
+            compact ? "max-w-[min(42vw,11rem)]" : "max-w-[200px]",
+          )}
+          value={selectedGroupId ?? "all"}
+          onChange={(e) => handleGroupChange(e.target.value)}
+          aria-label="Filtrar por grupo"
+        >
+          <option value="all">Todos os grupos</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {compact ? g.name : `${g.name} (${g.gameCount})`}
+            </option>
+          ))}
+        </select>
+      </label>
+      {selectedGroupId && (
+        <label className="flex items-center gap-2 min-w-0">
+          {!compact && <span>Campeonato</span>}
+          <span className="sr-only">Campeonato</span>
+          <select
+            className={cn(
+              "rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground",
+              compact ? "max-w-[min(42vw,11rem)]" : "max-w-[240px]",
+            )}
+            value={selectedChampionshipId ?? "all"}
+            onChange={(e) =>
+              setSelectedChampionshipId(
+                e.target.value === "all" ? null : e.target.value,
+              )
+            }
+            aria-label="Filtrar por campeonato"
+          >
+            <option value="all">Histórico geral</option>
+            {championships.map((row) => (
+              <option key={row.id} value={row.id}>
+                {compact
+                  ? row.name
+                  : championshipOptionLabel(
+                      row.name,
+                      row.startDate,
+                      row.endDate,
+                    )}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
+  );
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { selectedGroupId, setSelectedGroupId } = useGroupScope();
   const { logout } = useAuth();
-  const { data: groups = [] } = useGroupsQuery();
+  const { selectedGroupId } = useGroupScope();
+  const championshipsQuery = useGroupChampionshipsQuery(
+    selectedGroupId ?? undefined,
+  );
+  useSyncChampionshipSelection(
+    championshipsQuery.data,
+    championshipsQuery.isFetched && !!selectedGroupId,
+  );
   const [navOpen, setNavOpen] = useState(false);
 
   const closeNav = () => setNavOpen(false);
@@ -99,17 +191,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     void navigate({ to: "/ledger" });
   };
 
-  const handleGroupChange = (value: string) => {
-    const nextGroupId = value === "all" ? null : value;
-    setSelectedGroupId(nextGroupId);
-
-    if (pathname !== "/ledger") return;
-  };
-
   return (
     <div className="min-h-screen bg-felt flex flex-col">
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
-        <div className="container px-4 sm:px-8 flex flex-col gap-3 py-3 md:py-0 md:h-16 md:flex-row md:items-center md:justify-between">
+        <div className="container px-4 sm:px-8 flex flex-col gap-3 py-3 md:min-h-16 md:flex-row md:items-center md:justify-between md:py-2">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 shrink-0">
               <Sheet open={navOpen} onOpenChange={setNavOpen}>
@@ -189,42 +274,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 />
               </Link>
             </div>
-            <label className="flex items-center gap-2 md:hidden text-sm text-muted-foreground min-w-0">
-              <span className="sr-only">Grupo</span>
-              <select
-                className={cn(
-                  "rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground max-w-[min(55vw,14rem)]",
-                )}
-                value={selectedGroupId ?? "all"}
-                onChange={(e) => handleGroupChange(e.target.value)}
-                aria-label="Filtrar por grupo"
-              >
-                <option value="all">Todos os grupos</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="md:hidden min-w-0">
+              <GroupAndChampionshipFilters compact />
+            </div>
           </div>
           <div className="hidden md:flex items-center gap-3 flex-1 justify-end min-w-0">
-            <label className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
-              Grupo
-              <select
-                className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground max-w-[200px]"
-                value={selectedGroupId ?? "all"}
-                onChange={(e) => handleGroupChange(e.target.value)}
-                aria-label="Filtrar por grupo"
-              >
-                <option value="all">Todos os grupos</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name} ({g.gameCount})
-                  </option>
-                ))}
-              </select>
-            </label>
+            <GroupAndChampionshipFilters />
           </div>
         </div>
       </header>

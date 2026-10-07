@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { ApiGroup, ApiGroupMember } from "@poker-hub/db";
+import type { ApiGroup, ApiGroupMember, ApiChampionship } from "@poker-hub/db";
 
 export type GroupWithGameCount = {
   id: string;
@@ -12,6 +12,8 @@ const QUERY_KEYS = {
   groups: ["groups"] as const,
   group: (id: string) => ["groups", id] as const,
   groupMembers: (groupId: string) => ["groups", groupId, "members"] as const,
+  championships: (groupId: string) =>
+    ["groups", groupId, "championships"] as const,
 };
 
 export function useGroupsQuery() {
@@ -34,6 +36,46 @@ export function useGroupQuery(id: string | undefined) {
     queryKey: QUERY_KEYS.group(id ?? ""),
     queryFn: () => api.get<ApiGroup>(`/groups/${id}`),
     enabled: !!id,
+  });
+}
+
+export function useGroupChampionshipsQuery(groupId: string | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.championships(groupId ?? ""),
+    queryFn: () =>
+      api.get<ApiChampionship[]>(`/groups/${groupId}/championships`),
+    enabled: !!groupId,
+  });
+}
+
+export function useCreateChampionshipMutation(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      name: string;
+      startDate: string;
+      endDate: string;
+    }) => api.post<ApiChampionship>(`/groups/${groupId}/championships`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.championships(groupId) });
+      qc.invalidateQueries({ queryKey: ["history"] });
+      qc.invalidateQueries({ queryKey: ["profit-loss"] });
+    },
+  });
+}
+
+export function useDeleteChampionshipMutation(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (championshipId: string) =>
+      api.delete<{ success: boolean }>(
+        `/groups/${groupId}/championships/${championshipId}`,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.championships(groupId) });
+      qc.invalidateQueries({ queryKey: ["history"] });
+      qc.invalidateQueries({ queryKey: ["profit-loss"] });
+    },
   });
 }
 

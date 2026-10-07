@@ -11,6 +11,7 @@ if (!existsSync(dir)) {
   mkdirSync(dir, { recursive: true });
 }
 const sqlite = new Database(databasePath, { create: true });
+sqlite.exec("PRAGMA foreign_keys = ON");
 const db = drizzle(sqlite, { schema });
 
 // Run pending migrations on startup (e.g. drizzle folder relative to cwd when run from backend/)

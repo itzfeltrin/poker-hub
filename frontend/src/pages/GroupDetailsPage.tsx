@@ -8,8 +8,12 @@ import {
   useUpdateGroupMutation,
   useDeleteGroupMutation,
   useAddGroupMemberMutation,
+  useGroupChampionshipsQuery,
+  useCreateChampionshipMutation,
+  useDeleteChampionshipMutation,
 } from "@/api/hooks";
 import { useGroupScope } from "@/contexts/GroupContext";
+import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -52,8 +56,15 @@ export default function GroupDetailsPage() {
   const updateGroupMut = useUpdateGroupMutation();
   const deleteGroupMut = useDeleteGroupMutation();
   const addMemberMut = useAddGroupMemberMutation();
+  const { data: championships = [], isLoading: championshipsLoading } =
+    useGroupChampionshipsQuery(groupId);
+  const createChampionshipMut = useCreateChampionshipMutation(groupId);
+  const deleteChampionshipMut = useDeleteChampionshipMutation(groupId);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [playerToAdd, setPlayerToAdd] = useState("");
+  const [champName, setChampName] = useState("");
+  const [champStart, setChampStart] = useState("");
+  const [champEnd, setChampEnd] = useState("");
 
   const gameCount = useMemo(
     () => groupsWithCounts.find((g) => g.id === groupId)?.gameCount ?? 0,
@@ -242,6 +253,121 @@ export default function GroupDetailsPage() {
             onClick={handleAddMember}
           >
             {addMemberMut.isPending ? "Adicionando…" : "Adicionar"}
+          </Button>
+        </div>
+      </section>
+
+      <section className="mt-10 space-y-4 max-w-md">
+        <h2 className="text-lg font-display font-semibold">Campeonatos</h2>
+        <p className="text-sm text-muted-foreground">
+          Períodos deste grupo (ano, semestre, etc.). Na hora de registrar, a
+          data sugere o campeonato e a partida fica ligada a ele. O histórico
+          geral do grupo continua no filtro do topo. Para dois semestres,
+          remova o campeonato anual e crie dois períodos que não se
+          sobreponham.
+        </p>
+        {championshipsLoading && (
+          <p className="text-sm text-muted-foreground">
+            Carregando campeonatos…
+          </p>
+        )}
+        {!championshipsLoading && championships.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nenhum campeonato neste grupo.
+          </p>
+        )}
+        <ul className="space-y-2">
+          {championships.map((row) => (
+            <li
+              key={row.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2"
+            >
+              <div className="min-w-0">
+                <p className="font-medium truncate">{row.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {row.startDate} – {row.endDate}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={deleteChampionshipMut.isPending}
+                onClick={async () => {
+                  try {
+                    await deleteChampionshipMut.mutateAsync(row.id);
+                    toast.success("Campeonato removido");
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : "Erro ao excluir campeonato",
+                    );
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+          <FormControl label="Novo campeonato">
+            <Input
+              placeholder="ex.: Campeonato 2026.2"
+              className="bg-card"
+              value={champName}
+              onChange={(e) => setChampName(e.target.value)}
+            />
+          </FormControl>
+          <div className="grid grid-cols-2 gap-2">
+            <FormControl label="Início">
+              <Input
+                type="date"
+                className="bg-card"
+                value={champStart}
+                onChange={(e) => setChampStart(e.target.value)}
+              />
+            </FormControl>
+            <FormControl label="Fim">
+              <Input
+                type="date"
+                className="bg-card"
+                value={champEnd}
+                onChange={(e) => setChampEnd(e.target.value)}
+              />
+            </FormControl>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={
+              !champName.trim() ||
+              !champStart ||
+              !champEnd ||
+              createChampionshipMut.isPending
+            }
+            onClick={async () => {
+              try {
+                await createChampionshipMut.mutateAsync({
+                  name: champName.trim(),
+                  startDate: champStart,
+                  endDate: champEnd,
+                });
+                toast.success("Campeonato criado");
+                setChampName("");
+                setChampStart("");
+                setChampEnd("");
+              } catch (err) {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Erro ao criar campeonato",
+                );
+              }
+            }}
+          >
+            {createChampionshipMut.isPending ? "Criando…" : "Adicionar"}
           </Button>
         </div>
       </section>

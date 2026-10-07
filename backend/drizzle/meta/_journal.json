@@ -71,6 +71,20 @@
       "when": 1779736401019,
       "tag": "0009_perpetual_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780000000010,
+      "tag": "0010_championships",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780000000011,
+      "tag": "0011_game_championship",
+      "breakpoints": true
     }
   ]
 }

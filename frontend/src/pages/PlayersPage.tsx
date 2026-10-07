@@ -51,12 +51,16 @@ type DeleteTarget = {
 };
 
 export default function PlayersPage() {
-  const { selectedGroupId } = useGroupScope();
+  const { selectedGroupId, selectedChampionshipId } = useGroupScope();
   const { data: players = [] } = usePlayersQuery();
-  const { data: historyGames } = useHistoryQuery(selectedGroupId);
+  const { data: historyGames } = useHistoryQuery(
+    selectedGroupId,
+    selectedChampionshipId,
+  );
   const { data: profitLoss } = useProfitLossQuery({
     period: "all_time",
     groupId: selectedGroupId,
+    championshipId: selectedChampionshipId,
   });
   const createPlayerMut = useCreatePlayerMutation();
   const deletePlayerMut = useDeletePlayerMutation();

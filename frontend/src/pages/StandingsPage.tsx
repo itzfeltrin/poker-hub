@@ -5,6 +5,7 @@ import {
   useProfitLossQuery,
   useGroupsQuery,
   useGroupMembersQuery,
+  useGroupChampionshipsQuery,
 } from "@/api/hooks";
 import { useGroupScope } from "@/contexts/GroupContext";
 import { getPlayerPnL, getPlayerGamesCount } from "@/utils/player";
@@ -15,16 +16,26 @@ import { Container, Lockup } from "@poker-hub/design-system";
 import * as R from "remeda";
 
 export default function StandingsPage() {
-  const { selectedGroupId } = useGroupScope();
+  const { selectedGroupId, selectedChampionshipId } = useGroupScope();
   const { data: players = [] } = usePlayersQuery();
   const { data: groupMembers, isLoading: groupMembersLoading } =
     useGroupMembersQuery(selectedGroupId ?? undefined);
-  const { data: historyGames } = useHistoryQuery(selectedGroupId);
+  const { data: historyGames } = useHistoryQuery(
+    selectedGroupId,
+    selectedChampionshipId,
+  );
   const { data: profitLoss } = useProfitLossQuery({
     period: "all_time",
     groupId: selectedGroupId,
+    championshipId: selectedChampionshipId,
   });
   const { data: groups = [] } = useGroupsQuery();
+  const { data: championships = [] } = useGroupChampionshipsQuery(
+    selectedGroupId ?? undefined,
+  );
+  const championship = championships.find(
+    (row) => row.id === selectedChampionshipId,
+  );
   const scopeLabel = selectedGroupId
     ? (groups.find((g) => g.id === selectedGroupId)?.name ?? "Grupo")
     : "todos os grupos";
@@ -53,8 +64,10 @@ export default function StandingsPage() {
         <Lockup.Title>Classificação</Lockup.Title>
         <Lockup.Subtitle>
           {scopeLabel === "todos os grupos"
-            ? "Lucro e perda (todos os grupos), todos os tempos."
-            : `Lucro e perda no grupo «${scopeLabel}», todos os tempos.`}
+            ? "Lucro e perda (todos os grupos), histórico geral."
+            : championship
+              ? `Lucro e perda no grupo «${scopeLabel}», ${championship.name}.`
+              : `Lucro e perda no grupo «${scopeLabel}», histórico geral.`}
         </Lockup.Subtitle>
       </Lockup>
 

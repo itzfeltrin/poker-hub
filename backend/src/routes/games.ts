@@ -4,6 +4,7 @@ import { db } from "../db";
 import {
   ApiGameSchema,
   ApiGameBuyInCreateSchema,
+  ApiGamePatchSchema,
   ApiGameWithPlayersSchema,
   FinalizeGameBodySchema,
   gamePlayerBuyIns,
@@ -19,6 +20,10 @@ import type { ApiGameWithPlayers } from "@poker-hub/db";
 import * as R from "remeda";
 import { isGroqConfigured } from "../groq";
 import { parseGameSpeech, SpeechParseError } from "../speech-game";
+import {
+  insertDefaultChampionship,
+  resolveGameChampionshipId,
+} from "../championships";
 
 const app = new Hono();
 
@@ -61,6 +66,7 @@ function createGroupWithRoster(playerIds: string[]): string {
     name = `${baseName} (${n})`;
   }
   db.insert(groups).values({ id: groupId, name }).run();
+  insertDefaultChampionship(groupId);
   for (const playerId of unique) {
     const mid = crypto.randomUUID();
     db.insert(groupMembers).values({ id: mid, groupId, playerId }).run();
@@ -147,7 +153,7 @@ app.post("/", async (c) => {
   }
 
   const gameData = apiGame.data;
-  const { playerIds, groupId: requestedGroupId, ...gameRest } = gameData;
+  const { playerIds, groupId: requestedGroupId, championshipId: requestedChampionshipId, ...gameRest } = gameData;
 
   if (requestedGroupId) {
     const gRow = db.select().from(groups).where(eq(groups.id, requestedGroupId)).get();
@@ -159,7 +165,23 @@ app.post("/", async (c) => {
     findGroupIdByExactRoster(playerIds) ??
     createGroupWithRoster(playerIds);
 
-  db.insert(games).values({ ...gameRest, groupId, deletedAt: null }).run();
+  const championship = resolveGameChampionshipId(
+    groupId,
+    gameData.date,
+    requestedChampionshipId,
+  );
+  if (!championship.ok) {
+    return c.json({ error: championship.error }, 400);
+  }
+
+  db.insert(games)
+    .values({
+      ...gameRest,
+      groupId,
+      championshipId: championship.id,
+      deletedAt: null,
+    })
+    .run();
 
   const gameDataResolved = { ...gameData, groupId };
 
@@ -188,6 +210,43 @@ app.get("/:id", (c) => {
   const game = getGameWithPlayers(id);
   if (!game) return c.json({ error: "Game not found" }, 404);
   return c.json(toGameResponse(game));
+});
+
+app.patch("/:id", async (c) => {
+  const id = c.req.param("id");
+  const existing = db
+    .select()
+    .from(games)
+    .where(and(eq(games.id, id), isNull(games.deletedAt)))
+    .get();
+  if (!existing) return c.json({ error: "Game not found" }, 404);
+
+  const body = await c.req.json();
+  const parsed = ApiGamePatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid body" },
+      400,
+    );
+  }
+
+  const championship = resolveGameChampionshipId(
+    existing.groupId,
+    existing.date,
+    parsed.data.championshipId,
+  );
+  if (!championship.ok) {
+    return c.json({ error: championship.error }, 400);
+  }
+
+  db.update(games)
+    .set({ championshipId: championship.id })
+    .where(eq(games.id, id))
+    .run();
+
+  const updated = getGameWithPlayers(id);
+  if (!updated) return c.json({ error: "Failed to load game" }, 500);
+  return c.json(toGameResponse(updated));
 });
 
 app.delete("/:id", (c) => {
@@ -484,6 +543,7 @@ function toGameResponse(g: ApiGameWithPlayers) {
     chipsPerPlayer: g.chipsPerPlayer,
     locationId: g.locationId,
     groupId: g.groupId,
+    championshipId: g.championshipId,
     finished: g.finished,
     players: R.map(g.players, (p) => ({
       id: p.id,

@@ -13,8 +13,10 @@ import {
   useGroupsQuery,
   useGroupMembersQuery,
   useSpeechStatusQuery,
+  useGroupChampionshipsQuery,
 } from "@/api/hooks";
 import { useGroupScope } from "@/contexts/GroupContext";
+import { championshipContainsDate } from "@poker-hub/db";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { LocationCombobox } from "@/components/LocationCombobox";
 import {
@@ -41,6 +43,7 @@ const formSchema = z.object({
   playerIds: z
     .array(z.string().uuid())
     .min(1, "Selecione pelo menos um jogador"),
+  championshipChoice: z.string(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -52,6 +55,7 @@ const defaultValues = {
   buyIn: 0,
   chipsPerPlayer: 0,
   playerIds: [] as string[],
+  championshipChoice: "auto",
 };
 
 export default function NewGamePage() {
@@ -90,6 +94,17 @@ export default function NewGamePage() {
       : undefined;
 
   const { data: groupMembers = [] } = useGroupMembersQuery(formGroupId);
+  const { data: championships = [] } = useGroupChampionshipsQuery(formGroupId);
+  const formDate = watch("date");
+  const matchingChampionship = championships.find((row) =>
+    championshipContainsDate(
+      row.startDate,
+      row.endDate,
+      formDate instanceof Date && !Number.isNaN(formDate.getTime())
+        ? formDate.toISOString()
+        : new Date().toISOString(),
+    ),
+  );
 
   useEffect(() => {
     if (!formGroupId) {
@@ -106,6 +121,10 @@ export default function NewGamePage() {
     );
     lastAppliedGroupRef.current = formGroupId;
   }, [formGroupId, groupMembers, setValue]);
+
+  useEffect(() => {
+    setValue("championshipChoice", "auto");
+  }, [formGroupId, setValue]);
 
   const selectedIds = watch("playerIds") ?? [];
 
@@ -129,6 +148,11 @@ export default function NewGamePage() {
     };
     if (data.groupId) {
       payload.groupId = data.groupId;
+    }
+    if (data.championshipChoice === "none") {
+      payload.championshipId = null;
+    } else if (data.championshipChoice !== "auto") {
+      payload.championshipId = data.championshipChoice;
     }
 
     try {
@@ -192,6 +216,31 @@ export default function NewGamePage() {
             <p className="text-sm text-destructive">{errors.date.message}</p>
           )}
         </FormControl>
+        {formGroupId && (
+          <FormControl label="Campeonato" className="md:col-span-2">
+            <select
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+              {...register("championshipChoice")}
+            >
+              <option value="auto">
+                Automático
+                {matchingChampionship ? ` (${matchingChampionship.name})` : ""}
+              </option>
+              <option value="none">Nenhum (só histórico geral)</option>
+              {championships.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name} ({row.startDate} – {row.endDate})
+                </option>
+              ))}
+            </select>
+            {watch("championshipChoice") === "auto" && !matchingChampionship && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Nenhum campeonato cobre esta data; a partida fica só no
+                histórico geral.
+              </p>
+            )}
+          </FormControl>
+        )}
         <FormControl label="Local">
           <Controller
             name="locationId"
