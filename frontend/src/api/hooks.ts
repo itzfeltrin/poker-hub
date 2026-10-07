@@ -37,7 +37,10 @@ export {
   useDeleteChampionshipMutation,
   type GroupWithGameCount,
 } from "@/models/groups/hooks";
-export { useProfitLossQuery } from "@/models/profit-loss/hooks";
+export {
+  useProfitLossQuery,
+  useProfitLossSeriesQuery,
+} from "@/models/profit-loss/hooks";
 export {
   useLedgerQuery,
   useGroupLedgerQuery,

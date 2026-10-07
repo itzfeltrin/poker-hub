@@ -504,6 +504,102 @@ export const openApiDoc = {
         },
       },
     },
+    "/profit-loss/series": {
+      get: {
+        summary: "Cumulative profit and loss over time",
+        description:
+          "Returns a time series of cumulative P&L per player after each finished game. Optional playerId limits the series to one player.",
+        parameters: [
+          {
+            name: "period",
+            in: "query",
+            schema: {
+              type: "string",
+              enum: ["last_7_days", "last_month", "last_year", "all_time", "custom"],
+              default: "all_time",
+            },
+          },
+          {
+            name: "startDate",
+            in: "query",
+            schema: { type: "string", format: "date-time" },
+            description: "Required when period=custom",
+          },
+          {
+            name: "endDate",
+            in: "query",
+            schema: { type: "string", format: "date-time" },
+            description: "Required when period=custom",
+          },
+          {
+            name: "groupId",
+            in: "query",
+            schema: { type: "string", format: "uuid" },
+          },
+          {
+            name: "championshipId",
+            in: "query",
+            schema: { type: "string", format: "uuid" },
+            description: "Requires groupId. Filters to games linked to that championship.",
+          },
+          {
+            name: "playerId",
+            in: "query",
+            schema: { type: "string", format: "uuid" },
+            description: "When set, only that player's cumulative series is returned.",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Cumulative P&L series",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    period: { type: "string" },
+                    startDate: { type: "string", format: "date-time", nullable: true },
+                    endDate: { type: "string", format: "date-time", nullable: true },
+                    groupId: { type: "string", format: "uuid", nullable: true },
+                    playerId: { type: "string", format: "uuid", nullable: true },
+                    players: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          id: { type: "string", format: "uuid" },
+                          name: { type: "string" },
+                        },
+                      },
+                    },
+                    points: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          date: { type: "string", format: "date-time" },
+                          gameId: { type: "string", format: "uuid" },
+                          values: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                playerId: { type: "string", format: "uuid" },
+                                profitLoss: { type: "number" },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     schemas: {

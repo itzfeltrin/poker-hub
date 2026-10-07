@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 import { db } from "../db";
 import {
   ApiProfitLossSchema,
+  ApiProfitLossSeriesSchema,
   games,
   gamePlayerBuyIns,
   gamePlayers,
@@ -16,6 +17,21 @@ import {
 import { getChampionship } from "../championships";
 
 const app = new Hono();
+
+type GameRow = {
+  id: string;
+  date: string;
+  buyIn: number;
+  chipsPerPlayer: number;
+};
+
+type PlayerGamePnL = {
+  playerId: string;
+  name: string;
+  buyIn: number;
+  cashOut: number;
+  profitLoss: number;
+};
 
 function parsePeriod(value: string | undefined): PeriodFilter {
   const parsed = PeriodFilterSchema.safeParse(value);
@@ -57,55 +73,89 @@ function getEndDate(period: PeriodFilter, endDateQuery?: string): string | null 
   return new Date().toISOString();
 }
 
-app.get("/", (c) => {
+function resolveFilters(c: {
+  req: {
+    query: (name: string) => string | undefined;
+  };
+}):
+  | {
+      ok: true;
+      period: PeriodFilter;
+      startDate: string | null;
+      endDate: string | null;
+      groupId: string | undefined;
+      championshipId: string | undefined;
+      playerId: string | undefined;
+    }
+  | { ok: false; status: 400 | 404; error: string } {
   const championshipIdParsed = z.uuid().safeParse(c.req.query("championshipId"));
   const groupFilterParsed = z.uuid().safeParse(c.req.query("groupId"));
+  const playerIdParsed = z.uuid().safeParse(c.req.query("playerId"));
 
-  let period = parsePeriod(c.req.query("period"));
-  let startDate = getStartDate(
+  const period = parsePeriod(c.req.query("period"));
+  const startDate = getStartDate(
     period,
     c.req.query("startDate") ?? c.req.query("start_date") ?? undefined,
   );
-  let endDate = getEndDate(
+  const endDate = getEndDate(
     period,
     c.req.query("endDate") ?? c.req.query("end_date") ?? undefined,
   );
-  let groupId = groupFilterParsed.success ? groupFilterParsed.data : undefined;
+  const groupId = groupFilterParsed.success ? groupFilterParsed.data : undefined;
+  const championshipId = championshipIdParsed.success
+    ? championshipIdParsed.data
+    : undefined;
+  const playerId = playerIdParsed.success ? playerIdParsed.data : undefined;
 
-  if (championshipIdParsed.success) {
+  if (championshipId) {
     if (!groupId) {
-      return c.json(
-        { error: "groupId is required when filtering by championship" },
-        400,
-      );
+      return {
+        ok: false,
+        status: 400,
+        error: "groupId is required when filtering by championship",
+      };
     }
-    const championship = getChampionship(groupId, championshipIdParsed.data);
+    const championship = getChampionship(groupId, championshipId);
     if (!championship) {
-      return c.json({ error: "Campeonato não encontrado" }, 404);
+      return { ok: false, status: 404, error: "Campeonato não encontrado" };
     }
   }
 
-  const finishedCondition = and(eq(games.finished, true), isNull(games.deletedAt));
-  const dateWhere = championshipIdParsed.success
-    ? and(
-        finishedCondition,
-        eq(games.championshipId, championshipIdParsed.data),
-      )
-    : startDate && endDate
-        ? and(
-            finishedCondition,
-            gte(games.date, startDate),
-            lte(games.date, endDate),
-          )
-        : startDate
-          ? and(finishedCondition, gte(games.date, startDate))
-          : finishedCondition;
+  return {
+    ok: true,
+    period,
+    startDate,
+    endDate,
+    groupId,
+    championshipId,
+    playerId,
+  };
+}
 
-  const where = groupId
-    ? and(dateWhere, eq(games.groupId, groupId))
+function queryFinishedGames(filters: {
+  startDate: string | null;
+  endDate: string | null;
+  groupId: string | undefined;
+  championshipId: string | undefined;
+}): GameRow[] {
+  const finishedCondition = and(eq(games.finished, true), isNull(games.deletedAt));
+  const dateWhere = filters.championshipId
+    ? and(finishedCondition, eq(games.championshipId, filters.championshipId))
+    : filters.startDate && filters.endDate
+      ? and(
+          finishedCondition,
+          gte(games.date, filters.startDate),
+          lte(games.date, filters.endDate),
+        )
+      : filters.startDate
+        ? and(finishedCondition, gte(games.date, filters.startDate))
+        : finishedCondition;
+
+  const where = filters.groupId
+    ? and(dateWhere, eq(games.groupId, filters.groupId))
     : dateWhere;
 
-  const gameRows = db
+  return db
     .select({
       id: games.id,
       date: games.date,
@@ -116,71 +166,88 @@ app.get("/", (c) => {
     .where(where)
     .orderBy(games.date)
     .all();
+}
+
+function computeGamePlayerPnLs(game: GameRow): PlayerGamePnL[] {
+  const participants = db
+    .select({
+      playerId: groupMembers.playerId,
+      name: players.name,
+      cashOut: gamePlayers.cashOut,
+    })
+    .from(gamePlayers)
+    .innerJoin(groupMembers, eq(gamePlayers.groupMemberId, groupMembers.id))
+    .innerJoin(players, eq(players.id, groupMembers.playerId))
+    .where(and(eq(gamePlayers.gameId, game.id), isNotNull(gamePlayers.cashOut)))
+    .all();
+
+  const totalChips = R.sumBy(participants, (p) => p.cashOut ?? 0);
+  if (totalChips === 0) return [];
+
+  const buyInRows = db
+    .select({
+      playerId: groupMembers.playerId,
+      chips: gamePlayerBuyIns.chips,
+    })
+    .from(gamePlayerBuyIns)
+    .innerJoin(
+      groupMembers,
+      eq(gamePlayerBuyIns.groupMemberId, groupMembers.id),
+    )
+    .where(eq(gamePlayerBuyIns.gameId, game.id))
+    .all();
+
+  const buyInsByPlayer = R.groupBy(buyInRows, (b) => b.playerId);
+  const totalBuyInChips = R.sumBy(buyInRows, (b) => b.chips);
+
+  const totalPool =
+    game.chipsPerPlayer > 0
+      ? (totalBuyInChips / game.chipsPerPlayer) * game.buyIn
+      : game.buyIn * participants.length;
+
+  return R.map(participants, (p) => {
+    const cashOut = ((p.cashOut ?? 0) / totalChips) * totalPool;
+    const playerBuyInChips = R.sumBy(
+      buyInsByPlayer[p.playerId] ?? [],
+      (b) => b.chips,
+    );
+    const buyIn =
+      game.chipsPerPlayer > 0
+        ? (playerBuyInChips / game.chipsPerPlayer) * game.buyIn
+        : game.buyIn;
+    return {
+      playerId: p.playerId,
+      name: p.name,
+      buyIn,
+      cashOut,
+      profitLoss: cashOut - buyIn,
+    };
+  });
+}
+
+app.get("/", (c) => {
+  const filters = resolveFilters(c);
+  if (!filters.ok) {
+    return c.json({ error: filters.error }, filters.status);
+  }
+
+  const gameRows = queryFinishedGames(filters);
 
   const byPlayer = new Map<
     string,
     { name: string; totalIn: number; totalOut: number }
   >();
 
-  for (const game of gameRows) {
-    const participants = db
-      .select({
-        playerId: groupMembers.playerId,
-        name: players.name,
-        cashOut: gamePlayers.cashOut,
-      })
-      .from(gamePlayers)
-      .innerJoin(
-        groupMembers,
-        eq(gamePlayers.groupMemberId, groupMembers.id),
-      )
-      .innerJoin(players, eq(players.id, groupMembers.playerId))
-      .where(
-        and(eq(gamePlayers.gameId, game.id), isNotNull(gamePlayers.cashOut)),
-      )
-      .all();
-
-    const totalChips = R.sumBy(participants, (p) => p.cashOut ?? 0);
-    if (totalChips === 0) continue;
-
-    const buyInRows = db
-      .select({
-        playerId: groupMembers.playerId,
-        chips: gamePlayerBuyIns.chips,
-      })
-      .from(gamePlayerBuyIns)
-      .innerJoin(
-        groupMembers,
-        eq(gamePlayerBuyIns.groupMemberId, groupMembers.id),
-      )
-      .where(eq(gamePlayerBuyIns.gameId, game.id))
-      .all();
-
-    const buyInsByPlayer = R.groupBy(buyInRows, (b) => b.playerId);
-    const totalBuyInChips = R.sumBy(buyInRows, (b) => b.chips);
-
-    const totalPool =
-      game.chipsPerPlayer > 0
-        ? (totalBuyInChips / game.chipsPerPlayer) * game.buyIn
-        : game.buyIn * participants.length;
-
-    R.forEach(participants, (p) => {
-      const payout = ((p.cashOut ?? 0) / totalChips) * totalPool;
+  R.forEach(gameRows, (game) => {
+    R.forEach(computeGamePlayerPnLs(game), (p) => {
       const entry = byPlayer.get(p.playerId);
-      const name = entry?.name ?? p.name;
-      const playerBuyInChips = R.sumBy(
-        buyInsByPlayer[p.playerId] ?? [],
-        (b) => b.chips,
-      );
-      const totalIn =
-        (entry?.totalIn ?? 0) +
-        (game.chipsPerPlayer > 0
-          ? (playerBuyInChips / game.chipsPerPlayer) * game.buyIn
-          : game.buyIn);
-      const totalOut = (entry?.totalOut ?? 0) + payout;
-      byPlayer.set(p.playerId, { name, totalIn, totalOut });
+      byPlayer.set(p.playerId, {
+        name: entry?.name ?? p.name,
+        totalIn: (entry?.totalIn ?? 0) + p.buyIn,
+        totalOut: (entry?.totalOut ?? 0) + p.cashOut,
+      });
     });
-  }
+  });
 
   const playersList = R.pipe(
     byPlayer.entries(),
@@ -195,11 +262,79 @@ app.get("/", (c) => {
   );
 
   const response = ApiProfitLossSchema.parse({
-    period,
-    startDate: startDate ?? null,
-    endDate: endDate ?? null,
-    groupId: groupId ?? null,
+    period: filters.period,
+    startDate: filters.startDate ?? null,
+    endDate: filters.endDate ?? null,
+    groupId: filters.groupId ?? null,
     players: playersList,
+  });
+
+  return c.json(response);
+});
+
+app.get("/series", (c) => {
+  const filters = resolveFilters(c);
+  if (!filters.ok) {
+    return c.json({ error: filters.error }, filters.status);
+  }
+
+  const gameRows = queryFinishedGames(filters);
+  const cumulative = new Map<string, { name: string; profitLoss: number }>();
+  const points: {
+    date: string;
+    gameId: string;
+    values: { playerId: string; profitLoss: number }[];
+  }[] = [];
+
+  R.forEach(gameRows, (game) => {
+    const gamePnLs = computeGamePlayerPnLs(game);
+    if (gamePnLs.length === 0) return;
+
+    const relevantPnLs = filters.playerId
+      ? R.filter(gamePnLs, (p) => p.playerId === filters.playerId)
+      : gamePnLs;
+
+    // Single-player filter: only emit points for games they played.
+    if (relevantPnLs.length === 0) return;
+
+    R.forEach(relevantPnLs, (p) => {
+      const entry = cumulative.get(p.playerId);
+      cumulative.set(p.playerId, {
+        name: entry?.name ?? p.name,
+        profitLoss: (entry?.profitLoss ?? 0) + p.profitLoss,
+      });
+    });
+
+    // Carry forward prior totals for players who sat this game out.
+    const values = R.pipe(
+      Array.from(cumulative.entries()),
+      R.map(([playerId, { profitLoss }]) => ({ playerId, profitLoss })),
+    );
+
+    points.push({
+      date: game.date,
+      gameId: game.id,
+      values,
+    });
+  });
+
+  const seriesPlayers = R.pipe(
+    cumulative.entries(),
+    (entries) => Array.from(entries),
+    R.filter(([playerId]) =>
+      filters.playerId ? playerId === filters.playerId : true,
+    ),
+    R.map(([id, { name }]) => ({ id, name })),
+  );
+
+  const response = ApiProfitLossSeriesSchema.parse({
+    period: filters.period,
+    startDate: filters.startDate ?? null,
+    endDate: filters.endDate ?? null,
+    groupId: filters.groupId ?? null,
+    playerId: filters.playerId ?? null,
+    players: seriesPlayers,
+    points,
   });
 
   return c.json(response);
