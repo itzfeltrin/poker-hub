@@ -227,7 +227,10 @@ export function ProfitLossEvolutionChart({
                 />
               }
             />
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend
+              content={<ChartLegendContent />}
+              wrapperStyle={{ paddingTop: 8, width: "100%" }}
+            />
             {seriesKeys.map((playerKey) => (
               <Line
                 key={playerKey}
