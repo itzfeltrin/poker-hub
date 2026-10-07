@@ -1,0 +1,3 @@
+```bash
+ssh oracle-vm
+```
