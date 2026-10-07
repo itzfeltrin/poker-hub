@@ -11,25 +11,41 @@ import {
 } from "@poker-hub/db";
 import * as R from "remeda";
 import { z } from "zod/v4";
+import { getChampionship } from "../championships";
 
 const app = new Hono();
 
 app.get("/", (c) => {
   const groupIdParsed = z.uuid().safeParse(c.req.query("groupId"));
+  const championshipIdParsed = z.uuid().safeParse(c.req.query("championshipId"));
 
-  const filteredGames = groupIdParsed.success
-    ? db
-        .select()
-        .from(games)
-        .where(and(eq(games.groupId, groupIdParsed.data), isNull(games.deletedAt)))
-        .orderBy(desc(games.date))
-        .all()
-    : db
-        .select()
-        .from(games)
-        .where(isNull(games.deletedAt))
-        .orderBy(desc(games.date))
-        .all();
+  let groupId = groupIdParsed.success ? groupIdParsed.data : undefined;
+
+  if (championshipIdParsed.success) {
+    if (!groupId) {
+      return c.json(
+        { error: "groupId is required when filtering by championship" },
+        400,
+      );
+    }
+    const championship = getChampionship(groupId, championshipIdParsed.data);
+    if (!championship) {
+      return c.json({ error: "Campeonato não encontrado" }, 404);
+    }
+  }
+
+  const conditions = [isNull(games.deletedAt)];
+  if (groupId) conditions.push(eq(games.groupId, groupId));
+  if (championshipIdParsed.success) {
+    conditions.push(eq(games.championshipId, championshipIdParsed.data));
+  }
+
+  const filteredGames = db
+    .select()
+    .from(games)
+    .where(and(...conditions))
+    .orderBy(desc(games.date))
+    .all();
 
   const rows = R.pipe(
     filteredGames,

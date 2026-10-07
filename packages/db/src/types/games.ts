@@ -13,6 +13,8 @@ export const ApiGameSchema = z.object({
     .positive("Chips per player must be a positive number"),
   /** When omitted, the server picks a group whose members exactly match `playerIds`, or creates one. */
   groupId: z.uuid("Group ID must be a valid UUID").optional(),
+  /** Omitted = infer from group + date; `null` = unassigned. */
+  championshipId: z.uuid().nullable().optional(),
   playerIds: z
     .array(z.uuid("Player ID must be a valid UUID"))
     .min(1, "Player IDs must be a non-empty array of player IDs"),
@@ -37,7 +39,14 @@ export type ApiGamePlayer = z.infer<typeof ApiGamePlayerSchema>;
 export const ApiGameWithPlayersSchema = ApiGameSchema.extend({
   players: z.array(ApiGamePlayerSchema),
   groupId: z.uuid(),
+  championshipId: z.uuid().nullable(),
 }).omit({ playerIds: true });
+
+export const ApiGamePatchSchema = z.object({
+  championshipId: z.uuid().nullable(),
+});
+
+export type ApiGamePatch = z.infer<typeof ApiGamePatchSchema>;
 
 export type ApiGameWithPlayers = z.infer<typeof ApiGameWithPlayersSchema>;
 

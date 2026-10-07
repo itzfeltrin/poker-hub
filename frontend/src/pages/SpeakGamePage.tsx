@@ -11,6 +11,7 @@ import type {
   ApiGameSpeechDraft,
   ApiGameSpeechUnmatched,
 } from "@poker-hub/db";
+import { championshipContainsDate } from "@poker-hub/db";
 import {
   usePlayersQuery,
   useGroupsQuery,
@@ -20,6 +21,7 @@ import {
   useParseGameSpeechMutation,
   useSpeechStatusQuery,
   useLocationsQuery,
+  useGroupChampionshipsQuery,
 } from "@/api/hooks";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { LocationCombobox } from "@/components/LocationCombobox";
@@ -57,6 +59,7 @@ const reviewSchema = z.object({
     .min(1, "Selecione pelo menos um jogador"),
   extraBuyInCounts: z.record(z.string(), z.number().min(0)),
   cashOut: z.record(z.string(), z.number().min(0)),
+  championshipChoice: z.string(),
 });
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
@@ -154,6 +157,7 @@ export default function SpeakGamePage() {
       playerIds: [],
       extraBuyInCounts: {},
       cashOut: {},
+      championshipChoice: "auto",
     },
     resolver: zodResolver(reviewSchema),
     mode: "onChange",
@@ -163,6 +167,26 @@ export default function SpeakGamePage() {
   const extraBuyInCounts = useWatch({ control, name: "extraBuyInCounts" }) ?? {};
   const cashOutValues = useWatch({ control, name: "cashOut" }) ?? {};
   const chipsPerPlayer = parseChipValue(watch("chipsPerPlayer"));
+  const rawGroupId = watch("groupId");
+  const formGroupId =
+    typeof rawGroupId === "string" && rawGroupId.trim() !== ""
+      ? rawGroupId.trim()
+      : undefined;
+  const formDate = watch("date");
+  const { data: championships = [] } = useGroupChampionshipsQuery(formGroupId);
+  const matchingChampionship = championships.find((row) =>
+    championshipContainsDate(
+      row.startDate,
+      row.endDate,
+      formDate instanceof Date && !Number.isNaN(formDate.getTime())
+        ? formDate.toISOString()
+        : new Date().toISOString(),
+    ),
+  );
+
+  useEffect(() => {
+    setValue("championshipChoice", "auto");
+  }, [formGroupId, setValue]);
 
   const extraCount = R.sumBy(selectedIds, (id) => {
     const count = extraBuyInCounts[id];
@@ -222,6 +246,7 @@ export default function SpeakGamePage() {
         ...counts,
       },
       cashOut,
+      championshipChoice: "auto",
     });
   }
 
@@ -338,6 +363,11 @@ export default function SpeakGamePage() {
       date: data.date.toISOString(),
     };
     if (data.groupId) payload.groupId = data.groupId;
+    if (data.championshipChoice === "none") {
+      payload.championshipId = null;
+    } else if (data.championshipChoice !== "auto") {
+      payload.championshipId = data.championshipChoice;
+    }
 
     const extraBuyIns = R.flatMap(data.playerIds, (playerId) => {
       const count = Math.max(0, Math.floor(data.extraBuyInCounts[playerId] ?? 0));
@@ -590,6 +620,32 @@ export default function SpeakGamePage() {
                 ))}
               </select>
             </FormControl>
+            {formGroupId && (
+              <FormControl label="Campeonato" className="md:col-span-2">
+                <select
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                  {...register("championshipChoice")}
+                >
+                  <option value="auto">
+                    Automático
+                    {matchingChampionship ? ` (${matchingChampionship.name})` : ""}
+                  </option>
+                  <option value="none">Nenhum (só histórico geral)</option>
+                  {championships.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name} ({row.startDate} – {row.endDate})
+                    </option>
+                  ))}
+                </select>
+                {watch("championshipChoice") === "auto" &&
+                  !matchingChampionship && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Nenhum campeonato cobre esta data; a partida fica só no
+                      histórico geral.
+                    </p>
+                  )}
+              </FormControl>
+            )}
             <FormControl label="Data">
               <Controller
                 name="date"

@@ -3,6 +3,7 @@ import { api } from "@/api/client";
 import type {
   ApiGameCreate,
   ApiGameFinalize,
+  ApiGamePatch,
   ApiGameWithPlayers,
   ApiGameBuyInCreate,
   ApiGameSpeechParseResponse,
@@ -12,19 +13,24 @@ import type {
 const QUERY_KEYS = {
   games: ["games"] as const,
   game: (id: string) => ["games", id] as const,
-  history: (groupId?: string | null) =>
-    ["history", groupId ?? "all"] as const,
+  history: (groupId?: string | null, championshipId?: string | null) =>
+    ["history", groupId ?? "all", championshipId ?? "all"] as const,
 };
 
-export function useHistoryQuery(groupId?: string | null) {
+export function useHistoryQuery(
+  groupId?: string | null,
+  championshipId?: string | null,
+) {
   return useQuery({
-    queryKey: QUERY_KEYS.history(groupId),
+    queryKey: QUERY_KEYS.history(groupId, championshipId),
     queryFn: () => {
-      const q =
-        groupId !== undefined && groupId !== null && groupId !== ""
-          ? `?groupId=${encodeURIComponent(groupId)}`
-          : "";
-      return api.get<ApiGameWithPlayers[]>(`/history${q}`);
+      const search = new URLSearchParams();
+      if (groupId) search.set("groupId", groupId);
+      if (groupId && championshipId) {
+        search.set("championshipId", championshipId);
+      }
+      const q = search.toString();
+      return api.get<ApiGameWithPlayers[]>(`/history${q ? `?${q}` : ""}`);
     },
   });
 }
@@ -72,6 +78,25 @@ export function useCreateGameMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["history"] });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.games });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+}
+
+export function usePatchGameMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      gameId,
+      body,
+    }: {
+      gameId: string;
+      body: ApiGamePatch;
+    }) => api.patch<ApiGameWithPlayers>(`/games/${gameId}`, body),
+    onSuccess: (_data, { gameId }) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.game(gameId) });
+      qc.invalidateQueries({ queryKey: ["history"] });
+      qc.invalidateQueries({ queryKey: ["profit-loss"] });
       qc.invalidateQueries({ queryKey: ["groups"] });
     },
   });

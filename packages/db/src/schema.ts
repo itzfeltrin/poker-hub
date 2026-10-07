@@ -39,6 +39,26 @@ export const groupMembers = sqliteTable(
   ],
 );
 
+/** Named date range per group (year, semester, etc.). Suggests a championship when creating a game. */
+export const championships = sqliteTable(
+  "championships",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id),
+    name: text("name").notNull(),
+    /** Inclusive calendar date `YYYY-MM-DD` (UTC). */
+    startDate: text("start_date").notNull(),
+    /** Inclusive calendar date `YYYY-MM-DD` (UTC). */
+    endDate: text("end_date").notNull(),
+  },
+  (t) => [
+    uniqueIndex("championships_group_name_unique").on(t.groupId, t.name),
+    index("championships_group_idx").on(t.groupId),
+  ],
+);
+
 export const games = sqliteTable("games", {
   id: text("id").primaryKey(),
   date: text("date").notNull(),
@@ -49,9 +69,14 @@ export const games = sqliteTable("games", {
   groupId: text("group_id")
     .notNull()
     .references(() => groups.id),
+  championshipId: text("championship_id").references(() => championships.id, {
+    onDelete: "set null",
+  }),
   /** ISO 8601; when set the game is soft-deleted and excluded from aggregates and ledger totals. */
   deletedAt: text("deleted_at"),
-});
+},
+(t) => [index("games_championship_idx").on(t.championshipId)],
+);
 
 export const gamePlayers = sqliteTable(
   "game_players",
@@ -107,6 +132,7 @@ export type PlayerRow = (typeof players)["$inferSelect"];
 export type LocationRow = (typeof locations)["$inferSelect"];
 export type GroupRow = (typeof groups)["$inferSelect"];
 export type GroupMemberRow = (typeof groupMembers)["$inferSelect"];
+export type ChampionshipRow = (typeof championships)["$inferSelect"];
 export type GameRow = (typeof games)["$inferSelect"];
 export type GamePlayerRow = (typeof gamePlayers)["$inferSelect"];
 export type GamePlayerBuyInRow = (typeof gamePlayerBuyIns)["$inferSelect"];

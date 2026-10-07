@@ -4,8 +4,13 @@ import {
   useCreateBuyInMutation,
   useDeleteGameMutation,
   useGameQuery,
+  usePatchGameMutation,
 } from "@/models/games/hooks";
-import { useLocationsQuery, useGroupsQuery } from "@/api/hooks";
+import {
+  useLocationsQuery,
+  useGroupsQuery,
+  useGroupChampionshipsQuery,
+} from "@/api/hooks";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ArrowLeft, CheckCircle, PlusCircle, Banknote, Trash2 } from "lucide-react";
@@ -43,11 +48,13 @@ export default function GameDetailsPage() {
   const { data: game, isLoading, error } = useGameQuery(gameId);
   const { data: locations = [] } = useLocationsQuery();
   const { data: groups = [] } = useGroupsQuery();
+  const { data: championships = [] } = useGroupChampionshipsQuery(game?.groupId);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [settlementOpen, setSettlementOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const createBuyInMut = useCreateBuyInMutation();
   const deleteGameMut = useDeleteGameMutation();
+  const patchGameMut = usePatchGameMutation();
 
   const locationName = game?.locationId
     ? locations.find((l) => l.id === game.locationId)?.name ?? "—"
@@ -135,6 +142,40 @@ export default function GameDetailsPage() {
               {locationName}
             </p>
             <p className="text-xs text-muted-foreground md:text-sm">{groupName}</p>
+            <label className="mt-1 block text-xs text-muted-foreground">
+              <span className="sr-only">Campeonato</span>
+              <select
+                className="mt-0.5 max-w-[16rem] rounded-lg border border-border bg-card px-2 py-1 text-xs text-foreground md:text-sm"
+                value={game.championshipId ?? "none"}
+                disabled={patchGameMut.isPending}
+                onChange={async (event) => {
+                  const value = event.target.value;
+                  try {
+                    await patchGameMut.mutateAsync({
+                      gameId,
+                      body: {
+                        championshipId: value === "none" ? null : value,
+                      },
+                    });
+                    toast.success("Campeonato atualizado");
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : "Falha ao atualizar campeonato",
+                    );
+                  }
+                }}
+                aria-label="Campeonato da partida"
+              >
+                <option value="none">Nenhum (só histórico geral)</option>
+                {championships.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
       </div>

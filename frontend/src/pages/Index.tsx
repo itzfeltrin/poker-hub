@@ -20,12 +20,16 @@ import {
 } from "@poker-hub/design-system";
 
 const Index = () => {
-  const { selectedGroupId } = useGroupScope();
+  const { selectedGroupId, selectedChampionshipId } = useGroupScope();
   const { data: players = [] } = usePlayersQuery();
-  const { data: games = [] } = useHistoryQuery(selectedGroupId);
+  const { data: games = [] } = useHistoryQuery(
+    selectedGroupId,
+    selectedChampionshipId,
+  );
   const { data: profitLoss } = useProfitLossQuery({
     period: "all_time",
     groupId: selectedGroupId,
+    championshipId: selectedChampionshipId,
   });
   const { data: locations = [] } = useLocationsQuery();
 

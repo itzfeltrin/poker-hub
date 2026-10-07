@@ -412,7 +412,21 @@ export const openApiDoc = {
     "/history": {
       get: {
         summary: "Game history",
-        description: "List all games (most recent first).",
+        description:
+          "List games (most recent first). Optional groupId; championshipId also requires groupId and filters games linked to that championship.",
+        parameters: [
+          {
+            name: "groupId",
+            in: "query",
+            schema: { type: "string", format: "uuid" },
+          },
+          {
+            name: "championshipId",
+            in: "query",
+            schema: { type: "string", format: "uuid" },
+            description: "Requires groupId. Filters games linked to that championship.",
+          },
+        ],
         responses: {
           "200": {
             description: "List of games",
@@ -454,6 +468,17 @@ export const openApiDoc = {
             in: "query",
             schema: { type: "string", format: "date-time" },
             description: "Required when period=custom",
+          },
+          {
+            name: "groupId",
+            in: "query",
+            schema: { type: "string", format: "uuid" },
+          },
+          {
+            name: "championshipId",
+            in: "query",
+            schema: { type: "string", format: "uuid" },
+            description: "Requires groupId. Filters P&L to games linked to that championship.",
           },
         ],
         responses: {

@@ -4,6 +4,7 @@ import {
   usePlayersQuery,
   useLocationsQuery,
   useGroupsQuery,
+  useGroupChampionshipsQuery,
 } from "@/api/hooks";
 import { useGroupScope } from "@/contexts/GroupContext";
 import { getPlayerById } from "@/utils/player";
@@ -12,11 +13,17 @@ import { formatCurrency, formatPnl, formatDate } from "@/lib/utils";
 import { Container, Lockup } from "@poker-hub/design-system";
 
 export default function HistoryPage() {
-  const { selectedGroupId } = useGroupScope();
-  const { data: games = [] } = useHistoryQuery(selectedGroupId);
+  const { selectedGroupId, selectedChampionshipId } = useGroupScope();
+  const { data: games = [] } = useHistoryQuery(
+    selectedGroupId,
+    selectedChampionshipId,
+  );
   const { data: players } = usePlayersQuery();
   const { data: locations = [] } = useLocationsQuery();
   const { data: groups = [] } = useGroupsQuery();
+  const { data: championships = [] } = useGroupChampionshipsQuery(
+    selectedGroupId ?? undefined,
+  );
 
   const getLocationName = (locationId: string | null | undefined) => {
     if (!locationId) return "Sem local";
@@ -29,12 +36,18 @@ export default function HistoryPage() {
     <Container size="full">
       <Lockup>
         <Lockup.Title>Histórico de partidas</Lockup.Title>
-        <Lockup.Subtitle>{games.length} partidas registradas.</Lockup.Subtitle>
+        <Lockup.Subtitle>
+          {games.length}{" "}
+          {games.length === 1 ? "partida registrada" : "partidas registradas"}
+          {selectedChampionshipId ? " neste campeonato." : "."}
+        </Lockup.Subtitle>
       </Lockup>
 
       {sorted.length === 0 ? (
         <p className="text-muted-foreground text-center py-16">
-          Nenhuma partida ainda. Registre uma!
+          {selectedChampionshipId
+            ? "Nenhuma partida neste campeonato."
+            : "Nenhuma partida ainda. Registre uma!"}
         </p>
       ) : (
         <div className="space-y-4">
@@ -47,6 +60,9 @@ export default function HistoryPage() {
               game.chipsPerPlayer > 0
                 ? (totalInitialChips / game.chipsPerPlayer) * game.buyIn
                 : game.buyIn * game.players.length;
+            const championshipName = championships.find(
+              (c) => c.id === game.championshipId,
+            )?.name;
             return (
               <Link
                 key={game.id}
@@ -66,6 +82,12 @@ export default function HistoryPage() {
                           {" · "}
                           {groups.find((g) => g.id === game.groupId)?.name ??
                             "Grupo"}
+                        </>
+                      )}
+                      {championshipName && (
+                        <>
+                          {" · "}
+                          {championshipName}
                         </>
                       )}
                     </p>

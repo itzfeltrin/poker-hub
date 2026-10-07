@@ -9,12 +9,16 @@ import games from "./routes/games";
 import history from "./routes/history";
 import profitLoss from "./routes/profit-loss";
 import { openApiDoc } from "./openapi";
+import { seedDefaultChampionships, backfillGameChampionships } from "./championships";
 
 if (!isAuthConfigured()) {
   console.error(
     "APP_PASSWORD is not set. All API requests will be rejected until it is configured.",
   );
 }
+
+seedDefaultChampionships();
+backfillGameChampionships();
 
 const app = new Hono();
 const isProduction = process.env.NODE_ENV === "production";
